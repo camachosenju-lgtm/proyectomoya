@@ -1,0 +1,478 @@
+/* --- Estilos Migrados desde Dashboard.jsx --- */
+.dashboard {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: Segoe UI, sans-serif;
+}
+
+.navBar {
+  background: white;
+  padding: 15px 30px;
+  border-radius: 15px 15px 0 0;
+  display: flex;
+  gap: 10px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+}
+
+.btnHamburguesa {
+  background: #4a90e2;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 10px rgba(240, 126, 17, 0.3);
+}
+
+.btnHamburguesa:hover {
+  transition: 0.5s;
+  background: #257de2;
+  box-shadow: 0 4px 10px rgba(100, 77, 255, 0.3);
+}
+
+.menuDesplegable {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 10px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 220px;
+  z-index: 100;
+}
+
+.menuItem {
+  background: transparent;
+  border: none;
+  padding: 12px 15px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 8px;
+  font-size: 15px;
+  color: #333;
+  width: 100%;
+  display: block;
+  font-weight: 500;
+}
+
+.menuItem:hover {
+  background-color: #bebebe;
+  color: white;
+  transition: 0.5s;
+}
+
+.btnNav {
+  background: #4a90e2;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btnCerrar {
+  background: #e74c3c;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.perfilHeader {
+  text-align: center;
+  margin-bottom: 40px;
+  padding: 40px 30px;
+  border-radius: 0 0 20px 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.fotoPerfil {
+  background: #fff;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 6px solid #4a90e2;
+  margin-bottom: 15px;
+}
+
+.nombreUsuario {
+  font-size: 2.8em;
+  color: white;
+  font-weight: bold;
+}
+
+.bioUsuario {
+  color: white;
+  font-size: 1.2em;
+  max-width: 600px;
+  margin: 0 auto 30px;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  line-height: 1.4;
+  background-color: rgba(0, 0, 0, 0.45);
+  padding: 10px 14px;
+  border-radius: 14px;
+}
+
+.configPerfil {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 25px;
+  border-radius: 18px;
+  text-align: left;
+}
+
+.configRow {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin-bottom: 15px;
+}
+
+.configGrupo {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+}
+
+.configGrupoColor {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: center;
+}
+
+.label {
+  font-size: 12px;
+  color: #666;
+  font-weight: bold;
+}
+
+.inputColor {
+  width: 50px;
+  height: 45px;
+  cursor: pointer;
+}
+
+.inputText {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  flex: 2;
+}
+
+.inputText::placeholder {
+  color: #999;
+}
+
+.inputText:focus {
+  outline: none;
+  transition: 0.5s;
+  border-color: #f07e11;
+  box-shadow: 0 4px 10px rgba(240, 126, 17, 0.3);
+}
+
+.inputFileSmall {
+  font-size: 11px;
+  color: #666;
+}
+
+.btnSubirArchivo {
+  background-color: #f07e11;
+  color: #f8f8f8;
+  padding: 12px 25px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  border: none;
+}
+
+.btnSubirArchivo:hover {
+  background-color: #cc6403;
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(240, 126, 17, 0.3);
+}
+
+.btnGuardar {
+  background: #009623;
+  color: white;
+  padding: 12px 25px;
+  border: none;
+  display: flex;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.btnGuardar:hover {
+  transition: 0.5s;
+  background: #006813;
+  box-shadow: 0 4px 10px rgba(0, 180, 6, 0.3);
+}
+
+.subirObra {
+  padding: 30px;
+  border-radius: 20px;
+  margin-bottom: 30px;
+  color: white;
+}
+
+.gridObras {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.tituloSeccion {
+  color: white;
+  margin-bottom: 20px;
+  font-size: 1.8em;
+}
+
+.tarjetaObra {
+  background: white;
+  border-radius: 15px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.imgObra {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+}
+
+.infoObra {
+  padding: 15px;
+}
+
+.sinObras {
+  grid-column: 1/-1;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
+  padding: 60px;
+}
+
+.statsPrivadas {
+  background: #f8f9fa;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 0.85em;
+  color: #555;
+  display: flex;
+  align-items: center;
+  border: 1px solid #eee;
+}
+
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal {
+  width: 85%;
+  max-width: 1000px;
+  height: 75vh;
+  background: #111;
+  border-radius: 25px;
+  overflow: hidden;
+}
+
+.modalContent {
+  display: flex;
+  height: 100%;
+}
+
+.modalMedia {
+  flex: 1.5;
+  background: #000;
+  display: flex;
+  align-items: center;
+}
+
+.mediaFull {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.modalSide {
+  flex: 1;
+  padding: 25px;
+  display: flex;
+  flex-direction: column;
+  color: white;
+}
+
+.btnClose {
+  align-self: flex-end;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.modalTitulo {
+  color: #f07e11;
+  margin: 10px 0;
+}
+
+.descripcionText {
+  font-size: 0.95em;
+  color: #ccc;
+  margin-bottom: 20px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 14px;
+  border-radius: 12px;
+}
+
+.listaComentarios {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.comentarioItem {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #333;
+}
+
+.miniAvatarComment {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+}
+
+.textoComentario {
+  font-size: 0.9em;
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+.formComentario {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.inputComentario {
+  flex: 1;
+  background: #222;
+  border: 1px solid #444;
+  color: white;
+  padding: 10px;
+  border-radius: 10px;
+}
+
+.btnEnviarComment {
+  background: #f07e11;
+  border: none;
+  padding: 0 15px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.btnBorrarComentario {
+  background: none;
+  border: none;
+  color: #e74c3c;
+  cursor: pointer;
+  font-size: 1em;
+  padding: 5px;
+  margin-left: 10px;
+  transition: transform 0.2s;
+}
+
+.btnLikePrivado {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85em;
+  padding: 0;
+}
+
+.burbujaNotificaciones {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  background: #e74c3c;
+  color: white;
+  border-radius: 50%;
+  padding: 2px 7px;
+  font-size: 0.7em;
+  line-height: 1;
+  font-weight: bold;
+}
+
+.btnCancelar {
+  background: #444;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.btnCancelar:hover {
+  background-color: #e74c3c;
+  box-shadow: 0 4px 10px rgba(231, 76, 60, 0.3);
+  color: white;
+  transition: 0.5s;
+}
+
+.btnConfirmar {
+  background: #444;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.btnConfirmar:hover {
+  background-color: #27ae60;
+  box-shadow: 0 4px 10px rgba(39, 174, 96, 0.3);
+  color: white;
+  transition: 0.5s;
+}

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { Link, useNavigate } from 'react-router-dom'; // Añadido useNavigate
 import imagenDeFondo from '../imagenes/fondo.jpg';
-import { moderador } from './moderacion'; 
+import { User } from 'lucide-react';
+import { moderador } from './moderacion';
 
 const ComentarioIndividual = ({ comentario, todosLosComentarios, alResponder, alBorrar, respondiendoA, enviarRespuesta, textoRespuesta, setTextoRespuesta, usuarioActualId, comentarioEditandoId, comentarioEditandoTexto, setComentarioEditandoId, setComentarioEditandoTexto, actualizarComentario }) => {
   const hijos = todosLosComentarios.filter(h => String(h.parent_id) === String(comentario.id));
@@ -13,39 +14,39 @@ const ComentarioIndividual = ({ comentario, todosLosComentarios, alResponder, al
 
   return (
     <div style={{ marginBottom: '10px', marginLeft: comentario.parent_id ? '30px' : '0px', borderLeft: comentario.parent_id ? '1px solid #444' : 'none', paddingLeft: comentario.parent_id ? '15px' : '0px' }}>
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:'10px', padding:'10px', borderBottom:'1px solid rgba(255,255,255,0.1)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', padding: '10px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
         <img src={avatarUrl} style={estilos.miniAvatarComment} alt="avatar" />
-        <div style={{ flex:1 }}>
-          <strong style={{ fontSize:'0.8em', color:'#f07e11' }}>{nombreDisplay}</strong>
+        <div style={{ flex: 1 }}>
+          <strong style={{ fontSize: '0.8em', color: '#f07e11' }}>{nombreDisplay}</strong>
           {estaEditando ? (
-            <div style={{ display:'flex', gap:'8px', alignItems:'center', marginTop:'6px' }}>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '6px' }}>
               <input
                 value={comentarioEditandoTexto}
                 onChange={(e) => setComentarioEditandoTexto(e.target.value)}
-                style={{ ...estilos.inputComentario, fontSize:'0.85em', minWidth:'0' }}
+                style={{ ...estilos.inputComentario, fontSize: '0.85em', minWidth: '0' }}
               />
               <button onClick={() => actualizarComentario(comentario.id, comentarioEditandoTexto)} style={estilos.btnResponder}>💾</button>
               <button onClick={() => { setComentarioEditandoId(null); setComentarioEditandoTexto(''); }} style={estilos.btnBorrar}>✕</button>
             </div>
           ) : (
-            <p style={{ fontSize:'0.9em', margin:'5px 0', color:'#fff', whiteSpace:'pre-wrap', overflowWrap:'anywhere', wordBreak:'break-all' }}>{comentario.contenido}</p>
+            <p style={{ fontSize: '0.9em', margin: '5px 0', color: '#fff', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', wordBreak: 'break-all' }}>{comentario.contenido}</p>
           )}
-          <div style={{ display:'flex', gap:'8px' }}>
-            <button onClick={() => alResponder(comentario.id)} style={{ background:'#fff', color:'#000', border:'1px solid #444', borderRadius:'5px', fontSize:'0.75em', padding:'3px 8px', cursor:'pointer' }}>Responder</button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={() => alResponder(comentario.id)} style={{ background: '#fff', color: '#000', border: '1px solid #444', borderRadius: '5px', fontSize: '0.75em', padding: '3px 8px', cursor: 'pointer' }}>Responder</button>
             {esPropio && !estaEditando && (
-              <button onClick={() => { setComentarioEditandoId(comentario.id); setComentarioEditandoTexto(comentario.contenido || ''); }} style={{ background:'#fff', color:'#000', border:'1px solid #444', borderRadius:'5px', fontSize:'0.75em', padding:'3px 8px', cursor:'pointer' }}>✏️</button>
+              <button onClick={() => { setComentarioEditandoId(comentario.id); setComentarioEditandoTexto(comentario.contenido || ''); }} style={{ background: '#fff', color: '#000', border: '1px solid #444', borderRadius: '5px', fontSize: '0.75em', padding: '3px 8px', cursor: 'pointer' }}>✏️</button>
             )}
           </div>
         </div>
         {esPropio && (
-          <button onClick={() => alBorrar(comentario.id, comentario.usuario_id)} style={{ background:'none', border:'none', color:'#f00', cursor:'pointer' }}>🗑️</button>
+          <button onClick={() => alBorrar(comentario.id, comentario.usuario_id)} style={{ background: 'none', border: 'none', color: '#f00', cursor: 'pointer' }}>🗑️</button>
         )}
       </div>
 
       {respondiendoA === comentario.id && (
-        <div style={{ display:'flex', gap:'5px', margin:'8px 0 0 20px' }}>
-          <input value={textoRespuesta} onChange={(e) => setTextoRespuesta(e.target.value)} style={{ flex:1, padding:'8px', borderRadius:'6px', border:'1px solid #555', background:'#111', color:'white' }} placeholder="Escribe tu respuesta..." />
-          <button onClick={() => enviarRespuesta(comentario.id)} style={{ background:'#f07e11', border:'none', color:'white', borderRadius:'6px', padding:'8px 12px', cursor:'pointer' }}>➤</button>
+        <div style={{ display: 'flex', gap: '5px', margin: '8px 0 0 20px' }}>
+          <input value={textoRespuesta} onChange={(e) => setTextoRespuesta(e.target.value)} style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #555', background: '#111', color: 'white' }} placeholder="Escribe tu respuesta..." />
+          <button onClick={() => enviarRespuesta(comentario.id)} style={{ background: '#f07e11', border: 'none', color: 'white', borderRadius: '6px', padding: '8px 12px', cursor: 'pointer' }}>➤</button>
         </div>
       )}
 
@@ -59,7 +60,7 @@ const ComentarioIndividual = ({ comentario, todosLosComentarios, alResponder, al
 const Galeria = () => {
   const [proyectos, setProyectos] = useState([]);
   const [terminoBusqueda, setTerminoBusqueda] = useState('');
-  const [tipoFiltro, setTipoFiltro] = useState('titulo'); 
+  const [tipoFiltro, setTipoFiltro] = useState('titulo');
   const [cargando, setCargando] = useState(true);
   const [busquedaRealizada, setBusquedaRealizada] = useState(false);
   const [userId, setUserId] = useState(null);
@@ -83,14 +84,14 @@ const Galeria = () => {
     const { data: { user } } = await supabase.auth.getUser();
     const currentId = user?.id || null;
     setUserId(currentId);
-    fetchProyectosGlobales(false, currentId); 
+    fetchProyectosGlobales(false, currentId);
   };
 
   const fetchProyectosGlobales = async (esBusqueda = false, idParaCarga = null) => {
     setCargando(true);
     // Usamos el ID pasado por parámetro o el que está en el estado
     const activeUserId = idParaCarga || userId;
-    
+
     try {
       // 1. Iniciamos la consulta base
       let query = supabase
@@ -123,7 +124,7 @@ const Galeria = () => {
 
       // 4. Ordenar por fecha de creación (más recientes primero)
       const { data, error } = await query.order('creado_el', { ascending: false });
-      
+
       if (error) throw error;
 
       // 5. Procesar los datos para saber si el usuario actual ya dio "Like"
@@ -133,7 +134,7 @@ const Galeria = () => {
           ...p,
           totalLikes: p.likes?.length || 0,
           totalComentarios: p.comentarios?.[0]?.count || 0,
-          miLike: yaTieneMiLike 
+          miLike: yaTieneMiLike
         };
       });
 
@@ -159,7 +160,7 @@ const Galeria = () => {
       `)
       .eq('proyecto_id', proyectoId)
       .order('creado_el', { ascending: true });
-    
+
     if (error) {
       console.error("Error al traer comentarios:", error.message);
     } else {
@@ -307,11 +308,11 @@ const Galeria = () => {
   };
 
   const manejarLike = async (e, proyectoId, yaTieneLike) => {
-    e.stopPropagation(); 
+    e.stopPropagation();
     const activeId = userId;
     if (!activeId) return;
 
-    setProyectos(prev => prev.map(p => p.id === proyectoId ? 
+    setProyectos(prev => prev.map(p => p.id === proyectoId ?
       { ...p, miLike: !yaTieneLike, totalLikes: yaTieneLike ? p.totalLikes - 1 : p.totalLikes + 1 } : p
     ));
 
@@ -325,11 +326,11 @@ const Galeria = () => {
   const resetearGaleria = () => {
     setTerminoBusqueda('');
     setBusquedaRealizada(false);
-    fetchProyectosGlobales(false); 
+    fetchProyectosGlobales(false);
   };
 
   return (
-    <div style={{...estilos.padre, ...estilos.fondoConImagen}}>
+    <div style={{ ...estilos.padre, ...estilos.fondoConImagen }}>
       <div style={estilos.panelPrincipal}>
         <nav style={estilos.nav}>
           <h1 style={estilos.logotipo}>Explorer</h1>
@@ -338,18 +339,20 @@ const Galeria = () => {
               <option value="titulo">Proyecto</option>
               <option value="usuario">Usuario</option>
             </select>
-            <input 
-              type="text" 
-              placeholder="Buscar..." 
+            <input
+              type="text"
+              placeholder="Buscar..."
               value={terminoBusqueda}
               onChange={(e) => setTerminoBusqueda(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && fetchProyectosGlobales(true)}
-              style={estilos.buscador} 
+              style={estilos.buscador}
             />
             <button onClick={() => fetchProyectosGlobales(true)} style={estilos.btnBuscar}>🔍</button>
             {busquedaRealizada && <button onClick={resetearGaleria} style={estilos.btnVolverMini}>✕</button>}
           </div>
-          <Link to="/dashboard" style={estilos.btnPerfil}>👤 Mi Perfil</Link>
+          <Link to="/dashboard" style={estilos.btnPerfil}>
+            <User size={24} color="white" /> Perfil
+          </Link>
         </nav>
 
         <div style={estilos.grid}>
@@ -357,16 +360,16 @@ const Galeria = () => {
             <div key={obra.id} style={estilos.tarjeta}>
               {/* Click en la media abre el modal */}
               <div style={estilos.contenedorMedia} onClick={() => abrirProyecto(obra)}>
-                {obra.tipo_archivo === 'video' ? 
-                  <video src={obra.archivo_url} style={estilos.media} /> : 
+                {obra.tipo_archivo === 'video' ?
+                  <video src={obra.archivo_url} style={estilos.media} /> :
                   <img src={obra.archivo_url} style={estilos.media} alt="" />
                 }
               </div>
 
-              <button 
+              <button
                 onClick={(e) => manejarLike(e, obra.id, !!obra.miLike)}
                 style={{
-                  ...estilos.btnLike, 
+                  ...estilos.btnLike,
                   color: obra.miLike ? '#ff4b2b' : '#fff'
                 }}
               >
@@ -375,13 +378,13 @@ const Galeria = () => {
 
               <div style={estilos.footerTarjeta}>
                 <h3 style={estilos.tituloObra} onClick={() => abrirProyecto(obra)}>{obra.titulo}</h3>
-                <div style={{ marginTop:'8px', display:'flex', alignItems:'center', gap:'10px', color:'#222' }}>
-                  <span style={{ display:'inline-flex', alignItems:'center', background:'#fff', borderRadius:'12px', padding:'3px 8px', gap:'4px', fontSize:'0.85em' }}>❤️ {obra.totalLikes}</span>
-                  <span style={{ display:'inline-flex', alignItems:'center', background:'#fff', borderRadius:'12px', padding:'3px 8px', gap:'4px', fontSize:'0.85em' }}>💬 {obra.totalComentarios}</span>
+                <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '10px', color: '#222' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', background: '#fff', borderRadius: '12px', padding: '3px 8px', gap: '4px', fontSize: '0.85em' }}>❤️ {obra.totalLikes}</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', background: '#fff', borderRadius: '12px', padding: '3px 8px', gap: '4px', fontSize: '0.85em' }}>💬 {obra.totalComentarios}</span>
                 </div>
                 {/* CLICK AQUÍ ENVÍA AL PERFIL DEL USUARIO */}
-                <div 
-                  style={{...estilos.autorInfo, cursor: 'pointer'}} 
+                <div
+                  style={{ ...estilos.autorInfo, cursor: 'pointer' }}
                   onClick={(e) => {
                     e.stopPropagation();
                     navigate(`/perfil/${obra.usuario_id}`);
@@ -390,7 +393,7 @@ const Galeria = () => {
                   <img src={obra.perfiles?.avatar_url || "https://via.placeholder.com/30"} style={estilos.miniAvatar} alt="" />
                   <span style={estilos.nombreAutor}>{obra.perfiles?.nombre_completo}</span>
                 </div>
-              </div>              <div style={{ marginTop:'8px', display:'flex', gap:'10px', alignItems:'center' }}>
+              </div>              <div style={{ marginTop: '8px', display: 'flex', gap: '10px', alignItems: 'center' }}>
                 <span style={{ background: '#111', color: '#fff', borderRadius: '12px', padding: '4px 8px', fontSize: '0.85em', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                   ❤️ {obra.totalLikes ?? 0}
                 </span>
@@ -408,8 +411,8 @@ const Galeria = () => {
           <div style={estilos.modal} onClick={e => e.stopPropagation()}>
             <div style={estilos.modalContent}>
               <div style={estilos.modalMedia}>
-                {proyectoSeleccionado.tipo_archivo === 'video' ? 
-                  <video src={proyectoSeleccionado.archivo_url} controls style={estilos.mediaFull} /> : 
+                {proyectoSeleccionado.tipo_archivo === 'video' ?
+                  <video src={proyectoSeleccionado.archivo_url} controls style={estilos.mediaFull} /> :
                   <img src={proyectoSeleccionado.archivo_url} style={estilos.mediaFull} alt="" />
                 }
               </div>
@@ -421,7 +424,7 @@ const Galeria = () => {
                 </p>
                 <div style={estilos.listaComentarios}>
                   {comentarios.filter(c => !c.parent_id).map(c => (
-                    <ComentarioIndividual 
+                    <ComentarioIndividual
                       key={c.id}
                       comentario={c}
                       todosLosComentarios={comentarios}
@@ -442,7 +445,7 @@ const Galeria = () => {
 
                 </div>
                 <form onSubmit={enviarComentario} style={estilos.formComentario}>
-                  <input 
+                  <input
                     style={estilos.inputComentario}
                     placeholder="Escribe un comentario..."
                     value={nuevoComentario}
@@ -472,16 +475,16 @@ const estilos = {
   buscador: { flex: 1, background: 'transparent', border: 'none', padding: '10px', color: '#fff', outline: 'none' },
   btnBuscar: { background: '#f07e11', border: 'none', borderRadius: '10px', padding: '0 15px', cursor: 'pointer' },
   btnVolverMini: { background: '#333', color: '#fff', border: 'none', borderRadius: '10px', padding: '0 10px', cursor: 'pointer' },
-  btnPerfil: { textDecoration: 'none', background: '#f07e11', color: '#000', padding: '10px 20px', borderRadius: '12px', fontWeight: 'bold' },
+  btnPerfil: { textDecoration: 'none', background: '#f07e11', color: '#ffffffff', padding: '10px 20px', borderRadius: '12px', fontWeight: 'bold' },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px', overflowY: 'auto', padding: '10px', alignContent: 'start' },
   tarjeta: { background: '#1a1a1a', borderRadius: '18px', overflow: 'visible', border: '1px solid #333', position: 'relative' },
   contenedorMedia: { width: '100%', height: '180px', backgroundColor: '#000', position: 'relative', overflow: 'hidden', borderRadius: '18px 18px 0 0', cursor: 'pointer' },
   media: { width: '100%', height: '100%', objectFit: 'cover' },
-  btnLike: { 
-    position: 'absolute', top: '140px', right: '15px', background: 'rgba(0,0,0,0.75)', 
-    border: '1px solid #444', borderRadius: '20px', padding: '6px 12px', cursor: 'pointer', 
-    display: 'flex', alignItems: 'center', gap: '5px', backdropFilter: 'blur(8px)', zIndex: 100, 
-    boxShadow: '0 4px 15px rgba(0,0,0,0.5)' 
+  btnLike: {
+    position: 'absolute', top: '140px', right: '15px', background: 'rgba(0,0,0,0.75)',
+    border: '1px solid #444', borderRadius: '20px', padding: '6px 12px', cursor: 'pointer',
+    display: 'flex', alignItems: 'center', gap: '5px', backdropFilter: 'blur(8px)', zIndex: 100,
+    boxShadow: '0 4px 15px rgba(0,0,0,0.5)'
   },
   footerTarjeta: { padding: '15px' },
   tituloObra: { margin: '0 0 10px 0', color: '#fff', fontSize: '1.1em', cursor: 'pointer' },

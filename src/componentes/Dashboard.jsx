@@ -1,8 +1,10 @@
+import './perfil.css';
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
-import { validarPerfil, validarProyecto } from './validaciones'; 
+import { validarPerfil, validarProyecto } from './validaciones';
 import { moderador } from './moderacion';
+import styles from './perfil.css';
 import { Menu, Image as ImageIcon, Activity, LogOut, Heart, MessageCircle, Trash2, Pencil, Save, X, Send, Palette, Settings } from 'lucide-react';
 
 
@@ -21,16 +23,16 @@ const ComentarioIndividual = ({ comentario, todosLosComentarios, alResponder, al
   };
 
   return (
-    <div style={{ 
-      marginBottom: '10px', 
+    <div style={{
+      marginBottom: '10px',
       marginLeft: comentario.parent_id ? '30px' : '0px', // Sangría solo si es hijo
       borderLeft: comentario.parent_id ? '1px solid #444' : 'none',
       paddingLeft: comentario.parent_id ? '15px' : '0px'
     }}>
-      <div style={estilos.comentarioItem}>
+      <div className="comentarioItem">
         <img
           src={comentario.perfiles?.avatar_url || "..."}
-          style={{ ...estilos.miniAvatarComment, cursor: esPropio ? 'default' : 'pointer' }}
+          className="miniAvatarComment" style={{ cursor: esPropio ? 'default' : 'pointer' }}
           alt=""
           onClick={esPropio ? undefined : irAPerfil}
         />
@@ -46,52 +48,52 @@ const ComentarioIndividual = ({ comentario, todosLosComentarios, alResponder, al
               <input
                 value={comentarioEditandoTexto}
                 onChange={(e) => setComentarioEditandoTexto(e.target.value)}
-                style={{ ...estilos.inputComentario, fontSize: '0.85em', minWidth: '0' }}
+                className="inputComentario" style={{ fontSize: '0.85em', minWidth: '0' }}
               />
               <button
                 onClick={() => actualizarComentario(comentario.id, comentarioEditandoTexto)}
-                style={estilos.btnResponder}
+                className="btnResponder"
               ><Save size={16} /></button>
               <button
                 onClick={() => { setComentarioEditandoId(null); setComentarioEditandoTexto(''); }}
-                style={estilos.btnBorrar}
+                className="btnBorrar"
               ><X size={16} /></button>
             </div>
           ) : (
             <>
-              <p style={estilos.textoComentario}>{comentario.contenido}</p>
+              <p className="textoComentario">{comentario.contenido}</p>
               <div style={{ display: 'flex', gap: '8px' }}>
-                <button onClick={() => alResponder(comentario.id)} style={estilos.btnResponder}>Responder</button>
+                <button onClick={() => alResponder(comentario.id)} className="btnResponder">Responder</button>
                 {esPropio && (
                   <button
                     onClick={() => {
                       setComentarioEditandoId(comentario.id);
                       setComentarioEditandoTexto(comentario.contenido);
                     }}
-                    style={estilos.btnResponder}
+                    className="btnResponder"
                   ><Pencil size={14} /></button>
                 )}
               </div>
             </>
           )}
         </div>
-        <button onClick={() => alBorrar(comentario.id)} style={estilos.btnBorrar}><Trash2 size={16} /></button>
+        <button onClick={() => alBorrar(comentario.id)} className="btnBorrar"><Trash2 size={16} /></button>
       </div>
 
       {/* INPUT DE RESPUESTA SI ESTÁ ACTIVO */}
       {respondiendoA === comentario.id && (
         <div style={{ marginTop: '10px', display: 'flex', gap: '5px', marginLeft: '20px' }}>
-          <input 
-            type="text" 
-            placeholder="Escribe tu respuesta..." 
-            style={estilos.inputComentario}
+          <input
+            type="text"
+            placeholder="Escribe tu respuesta..."
+            className="inputComentario"
             value={textoRespuesta}
             onChange={(e) => setTextoRespuesta(e.target.value)}
             autoFocus
           />
-          <button 
-            onClick={() => enviarRespuesta(comentario.id)} 
-            style={{...estilos.btnEnviarComment, display: 'flex', alignItems: 'center', justifyContent: 'center'}}
+          <button
+            onClick={() => enviarRespuesta(comentario.id)}
+            className="btnEnviarComment" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             <Send size={16} />
           </button>
@@ -100,7 +102,7 @@ const ComentarioIndividual = ({ comentario, todosLosComentarios, alResponder, al
 
       {/* LA MAGIA: El componente se llama a sí mismo para renderizar a sus propios hijos */}
       {hijos.map(hijo => (
-        <ComentarioIndividual 
+        <ComentarioIndividual
           key={hijo.id}
           comentario={hijo}
           todosLosComentarios={todosLosComentarios}
@@ -122,12 +124,12 @@ const ComentarioIndividual = ({ comentario, todosLosComentarios, alResponder, al
   );
 };
 
-     // no olvides wilis la funcion anterior es para recursividad de comentarios
+// no olvides wilis la funcion anterior es para recursividad de comentarios
 
 const Dashboard = ({ alCerrarSesion }) => {
   const [usuario, setUsuario] = useState(null);
   const navigate = useNavigate();
-  
+
   const [perfil, setPerfil] = useState({
     nombre: 'Cargando...',
     bio: 'Artista ✨',
@@ -139,9 +141,9 @@ const Dashboard = ({ alCerrarSesion }) => {
     avatarUrl: null,
     imagenFondoUrl: null
   });
-  
-  const [obras, setObras] = useState([]); 
-  const [nuevaObra, setNuevaObra] = useState({ titulo: '', descripcion: '', imagenUrl: '' }); 
+
+  const [obras, setObras] = useState([]);
+  const [nuevaObra, setNuevaObra] = useState({ titulo: '', descripcion: '', imagenUrl: '' });
   const [cargando, setCargando] = useState(true);
 
   // ESTADOS PARA COMENTARIOS
@@ -161,6 +163,7 @@ const Dashboard = ({ alCerrarSesion }) => {
 
   const [editandoTitulo, setEditandoTitulo] = useState(false);
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const [mostrarModalSalir, setMostrarModalSalir] = useState(false);
 
   useEffect(() => {
     const almacenadas = localStorage.getItem(STORAGE_KEY_NOTIF_LEIDAS);
@@ -245,68 +248,68 @@ const Dashboard = ({ alCerrarSesion }) => {
     };
   };
 
-      const cargarNotificaciones = async () => {
-  if (!usuario || obras.length === 0) {
+  const cargarNotificaciones = async () => {
+    if (!usuario || obras.length === 0) {
+      return [];
+    }
+
+    console.log('[Dashboard] cargarNotificaciones: usuario=', usuario?.id, 'obras=', obras.length);
+
+    const proyectosIds = obras.map(o => o.id);
+    const { data, error } = await supabase
+      .from('comentarios')
+      .select(`id, proyecto_id, usuario_id, creado_el, contenido, perfiles(nombre_completo)`)
+      .in('proyecto_id', proyectosIds)
+      .neq('usuario_id', usuario.id);
+
+    if (!error && data) {
+      const formateadas = data.map(formatearNotificacion);
+      setNotificaciones(formateadas);
+
+      actualizarContador(formateadas.length);
+
+      console.log('[Dashboard] cargarNotificaciones: totalDB=', formateadas.length);
+
+      return formateadas;
+    }
+
     return [];
-  }
+  };
+  // EFECTO 1: Solo carga al iniciar o cuando cambian las obras
+  useEffect(() => {
+    if (usuario && obras.length > 0) {
+      cargarNotificaciones();
+    }
+  }, [obras, usuario]);
 
-  console.log('[Dashboard] cargarNotificaciones: usuario=', usuario?.id, 'obras=', obras.length);
-
-  const proyectosIds = obras.map(o => o.id);
-  const { data, error } = await supabase
-    .from('comentarios')
-    .select(`id, proyecto_id, usuario_id, creado_el, contenido, perfiles(nombre_completo)`)
-    .in('proyecto_id', proyectosIds)
-    .neq('usuario_id', usuario.id);
-
-  if (!error && data) {
-    const formateadas = data.map(formatearNotificacion);
-    setNotificaciones(formateadas);
-
-    actualizarContador(formateadas.length);
-
-    console.log('[Dashboard] cargarNotificaciones: totalDB=', formateadas.length);
-
-    return formateadas;
-  }
-
-  return [];
-};
-    // EFECTO 1: Solo carga al iniciar o cuando cambian las obras
-useEffect(() => {
-  if (usuario && obras.length > 0) {
-    cargarNotificaciones();
-  }
-}, [obras, usuario]);
-
-// EFECTO 2: El intervalo (Asegúrate de que use la versión fresca de la función)
-useEffect(() => {
-  const intervalo = setInterval(() => {
-    cargarNotificaciones();
-  }, 20000);
-  return () => clearInterval(intervalo);
-}, [obras, usuario]);
+  // EFECTO 2: El intervalo (Asegúrate de que use la versión fresca de la función)
+  useEffect(() => {
+    const intervalo = setInterval(() => {
+      cargarNotificaciones();
+    }, 20000);
+    return () => clearInterval(intervalo);
+  }, [obras, usuario]);
 
 
   const manejarIrNotificaciones = async () => {
-  // Ideal: marcamos los comentarios como leídos y navegamos.
-  const listaActual = await cargarNotificaciones();
-  const total = Array.isArray(listaActual) ? listaActual.length : notificaciones.length;
+    // Ideal: marcamos los comentarios como leídos y navegamos.
+    const listaActual = await cargarNotificaciones();
+    const total = Array.isArray(listaActual) ? listaActual.length : notificaciones.length;
 
-  console.log('[Dashboard] manejarIrNotificaciones', { total, notificacionesLeidasCount });
+    console.log('[Dashboard] manejarIrNotificaciones', { total, notificacionesLeidasCount });
 
-  setContadorNotificaciones(0);
-  setNotificacionesLeidasCount(total);
-  localStorage.setItem(STORAGE_KEY_NOTIF_LEIDAS, String(total));
-  setNotificaciones(listaActual);
+    setContadorNotificaciones(0);
+    setNotificacionesLeidasCount(total);
+    localStorage.setItem(STORAGE_KEY_NOTIF_LEIDAS, String(total));
+    setNotificaciones(listaActual);
 
-  navigate('/notificaciones', { state: { notificaciones: listaActual } });
-};
+    navigate('/notificaciones', { state: { notificaciones: listaActual } });
+  };
 
 
   const manejarLike = async (e, proyectoId, yaTieneLike) => {
     e.stopPropagation();
-    setObras(prev => prev.map(p => p.id === proyectoId ? 
+    setObras(prev => prev.map(p => p.id === proyectoId ?
       { ...p, miLike: !yaTieneLike, totalLikes: yaTieneLike ? Number(p.totalLikes) - 1 : Number(p.totalLikes) + 1 } : p
     ));
     if (yaTieneLike) await supabase.from('likes').delete().match({ usuario_id: usuario.id, proyecto_id: proyectoId });
@@ -324,22 +327,22 @@ useEffect(() => {
 
 
 
-  
+
   // ...existing code...
 
- const fetchComentarios = async (proyectoId) => {
-  const { data, error } = await supabase
-    .from('comentarios')
-    .select(`
+  const fetchComentarios = async (proyectoId) => {
+    const { data, error } = await supabase
+      .from('comentarios')
+      .select(`
       id, contenido, creado_el, usuario_id, parent_id,
       perfiles ( id, nombre_completo, avatar_url )
     `)
-    .eq('proyecto_id', proyectoId)
-    .order('creado_el', { ascending: true });
+      .eq('proyecto_id', proyectoId)
+      .order('creado_el', { ascending: true });
 
     if (error) console.error("Error:", error.message);
     else setComentarios(data || []);
-    };
+  };
 
   const enviarComentario = async (e) => {
     e.preventDefault();
@@ -370,11 +373,11 @@ useEffect(() => {
     if (!error) {
       setNuevoComentario('');
       await fetchComentarios(proyectoSeleccionado.id);
-      cargarObrasConStats(); 
+      cargarObrasConStats();
     }
     setEnviandoComentario(false);
   };
- 
+
   const enviarRespuesta = async (padreId) => {
     if (!proyectoSeleccionado?.id) {
       alert('Error: proyecto no seleccionado.');
@@ -430,7 +433,7 @@ useEffect(() => {
       return;
     }
 
-   
+
     const { data, error } = await supabase
       .from('comentarios')
       .update({ contenido: contenido.trim() })
@@ -536,101 +539,101 @@ useEffect(() => {
   };
 
   const borrarComentario = async (comentarioId) => {
-  const confirmar = window.confirm("¿Estás seguro de que quieres eliminar este comentario?");
-  if (!confirmar) return;
+    const confirmar = window.confirm("¿Estás seguro de que quieres eliminar este comentario?");
+    if (!confirmar) return;
 
-  try {
-    const { error } = await supabase
-      .from('comentarios')
-      .delete()
-      .eq('id', comentarioId);
+    try {
+      const { error } = await supabase
+        .from('comentarios')
+        .delete()
+        .eq('id', comentarioId);
 
-    if (error) throw error;
+      if (error) throw error;
 
-    // Actualizamos el estado local para que el comentario desaparezca visualmente
-    setComentarios(prev => prev.filter(c => c.id !== comentarioId));
-    
-    // Opcional: Recargar estadísticas para actualizar el contador de comentarios en la tarjeta
-    cargarObrasConStats();
+      // Actualizamos el estado local para que el comentario desaparezca visualmente
+      setComentarios(prev => prev.filter(c => c.id !== comentarioId));
 
-  } catch (err) {
-    alert("❌ Error al borrar: " + err.message);
-  }
-};
+      // Opcional: Recargar estadísticas para actualizar el contador de comentarios en la tarjeta
+      cargarObrasConStats();
+
+    } catch (err) {
+      alert("❌ Error al borrar: " + err.message);
+    }
+  };
 
 
   // BOTÓN GUARDAR: Ahora solo para Textos y Colores
 
-const guardarCambiosPerfil = async () => {
-  // 1. Ejecutamos la validación (Nombre máx 25, Bio máx 150)
-  const resultado = validarPerfil(perfil);
+  const guardarCambiosPerfil = async () => {
+    // 1. Ejecutamos la validación (Nombre máx 25, Bio máx 150)
+    const resultado = validarPerfil(perfil);
 
-  if (!resultado.valido) {
-    const primerError = Object.values(resultado.errores)[0];
-    alert("⚠️ " + primerError);
-    return; 
-  }
+    if (!resultado.valido) {
+      const primerError = Object.values(resultado.errores)[0];
+      alert("⚠️ " + primerError);
+      return;
+    }
 
-  // 1.5. Validación adicional con moderador para evitar nombres/descripciones explícitas
-  const moderacionNombre = await moderador.validarTexto(perfil.nombre || '');
-  if (!moderacionNombre.seguro) {
-    alert('❌ Nombre bloqueado: contenido inapropiado detectado.');
-    return;
-  }
+    // 1.5. Validación adicional con moderador para evitar nombres/descripciones explícitas
+    const moderacionNombre = await moderador.validarTexto(perfil.nombre || '');
+    if (!moderacionNombre.seguro) {
+      alert('❌ Nombre bloqueado: contenido inapropiado detectado.');
+      return;
+    }
 
-  const moderacionBio = await moderador.validarTexto(perfil.bio || '');
-  if (!moderacionBio.seguro) {
-    alert('❌ Biografía bloqueada: contenido inapropiado detectado.');
-    return;
-  }
+    const moderacionBio = await moderador.validarTexto(perfil.bio || '');
+    if (!moderacionBio.seguro) {
+      alert('❌ Biografía bloqueada: contenido inapropiado detectado.');
+      return;
+    }
 
-  if (!usuario) return alert("Espera a que cargue tu sesión...");
-  setCargando(true);
+    if (!usuario) return alert("Espera a que cargue tu sesión...");
+    setCargando(true);
 
     const datosParaDB = {
-   id: usuario.id,
-   nombre_completo: perfil.nombre,
-   biografia: perfil.bio,
-   color_principal: perfil.colorPrincipal,
-   color_secundario: perfil.colorSecundario,
-   color_fondo_web: perfil.colorFondoWeb,
-   // Asegúrate de que estas propiedades existan en tu estado 'perfil'
-   color_letra_nombre: perfil.colorLetraNombre, 
-   color_letra_bio: perfil.colorLetraBio
-};
+      id: usuario.id,
+      nombre_completo: perfil.nombre,
+      biografia: perfil.bio,
+      color_principal: perfil.colorPrincipal,
+      color_secundario: perfil.colorSecundario,
+      color_fondo_web: perfil.colorFondoWeb,
+      // Asegúrate de que estas propiedades existan en tu estado 'perfil'
+      color_letra_nombre: perfil.colorLetraNombre,
+      color_letra_bio: perfil.colorLetraBio
+    };
 
-  const { error: errorPerfil } = await supabase
-    .from('perfiles')
-    .upsert(datosParaDB, { onConflict: 'id' });
+    const { error: errorPerfil } = await supabase
+      .from('perfiles')
+      .upsert(datosParaDB, { onConflict: 'id' });
 
-  if (errorPerfil) {
-    console.error('Error guardando perfil:', errorPerfil);
-    if (errorPerfil.code === '23505') {
-      alert('❌ Este nombre de usuario ya está en uso. Por favor, elige otro.');
+    if (errorPerfil) {
+      console.error('Error guardando perfil:', errorPerfil);
+      if (errorPerfil.code === '23505') {
+        alert('❌ Este nombre de usuario ya está en uso. Por favor, elige otro.');
+      } else {
+        alert('❌ Error guardando perfil: ' + errorPerfil.message);
+      }
     } else {
-      alert('❌ Error guardando perfil: ' + errorPerfil.message);
+      alert('✅ ¡Información actualizada!');
     }
-  } else {
-    alert('✅ ¡Información actualizada!');
-  }
 
-  setCargando(false);
-};
+    setCargando(false);
+  };
 
-const prepararArchivoProyecto = async (event) => {
+  const prepararArchivoProyecto = async (event) => {
     const archivo = event.target.files[0];
     if (!archivo) return;
 
 
-   const tiposPermitidos = ['image', 'video', 'audio'];
-   // Verificamos si el tipo de archivo (MIME type) empieza con alguno de los permitidos
-   const esValido = tiposPermitidos.some(tipo => archivo.type.startsWith(tipo));
+    const tiposPermitidos = ['image', 'video', 'audio'];
+    // Verificamos si el tipo de archivo (MIME type) empieza con alguno de los permitidos
+    const esValido = tiposPermitidos.some(tipo => archivo.type.startsWith(tipo));
 
-  if (!esValido) {
-    alert("❌ Archivo no permitido. Solo puedes subir Imágenes, Videos o Audios.");
-    event.target.value = ""; // Limpia el input para que no quede el archivo malo ahí
-    return; // Detiene todo
-  }
+    if (!esValido) {
+      alert("❌ Archivo no permitido. Solo puedes subir Imágenes, Videos o Audios.");
+      event.target.value = ""; // Limpia el input para que no quede el archivo malo ahí
+      return; // Detiene todo
+    }
     // VALIDACIÓN DE TAMAÑO: 50MB (50 * 1024 * 1024 bytes)
     const limiteMB = 50;
     const limiteBytes = limiteMB * 1024 * 1024;
@@ -672,7 +675,7 @@ const prepararArchivoProyecto = async (event) => {
 
       // Guardamos la URL en el estado temporal para que el botón de publicar la use
       setNuevaObra(prev => ({ ...prev, imagenUrl: publicUrl }));
-      
+
       alert("✅ Archivo cargado correctamente. Ahora puedes ponerle un título y publicar.");
 
     } catch (err) {
@@ -683,10 +686,10 @@ const prepararArchivoProyecto = async (event) => {
     }
   };
 
-const publicarProyecto = async () => {
+  const publicarProyecto = async () => {
     // 1. Usamos la validación que exportamos (Título máx 20, etc.)
     const check = validarProyecto(nuevaObra);
-    
+
     if (!check.valido) {
       alert("⚠️ " + Object.values(check.errores)[0]);
       return; // Detiene la ejecución si hay error
@@ -727,22 +730,22 @@ const publicarProyecto = async () => {
     try {
       // 3. Inserción en Supabase
       const { error } = await supabase.from('proyectos').insert([
-        { 
-          usuario_id: usuario.id, 
-          titulo: nuevaObra.titulo, 
-          archivo_url: nuevaObra.imagenUrl, 
-          tipo_archivo: tipoDetectado 
+        {
+          usuario_id: usuario.id,
+          titulo: nuevaObra.titulo,
+          archivo_url: nuevaObra.imagenUrl,
+          tipo_archivo: tipoDetectado
         }
       ]);
 
       if (error) throw error;
 
       alert(`🚀 ¡Proyecto (${tipoDetectado}) publicado con éxito!`);
-      
+
       // 4. Limpiar el formulario y recargar la lista
       setNuevaObra({ titulo: '', descripcion: '', imagenUrl: '' });
-      cargarObrasConStats(); 
-      
+      cargarObrasConStats();
+
     } catch (err) {
       alert("❌ Error al publicar: " + err.message);
     } finally {
@@ -799,9 +802,9 @@ const publicarProyecto = async () => {
     }
 
     const { error: dbError } = await supabase
-        .from('perfiles')
-        .update({ [columnaDB]: publicUrl })
-        .eq('id', usuario.id);
+      .from('perfiles')
+      .update({ [columnaDB]: publicUrl })
+      .eq('id', usuario.id);
 
     if (dbError) alert("Error: " + dbError.message);
     else setPerfil(prev => ({ ...prev, [campoEstado]: publicUrl }));
@@ -820,37 +823,40 @@ const publicarProyecto = async () => {
     return perfil.colorPrincipal;
   };
 
-  if (cargando && !usuario) return <div style={{color:'white', padding:'50px', textAlign:'center'}}>Cargando...</div>;
+  if (cargando && !usuario) return <div style={{ color: 'white', padding: '50px', textAlign: 'center' }}>Cargando...</div>;
 
   return (
-    <section style={estilos.dashboard}>
-      <div style={estilos.navBar}>
+    <section className="dashboard">
+      <div className="navBar">
         <div style={{ position: 'relative' }}>
-          <button 
-            style={estilos.btnHamburguesa} 
+          <button
+            className="btnHamburguesa"
             onClick={() => setMenuAbierto(!menuAbierto)}
           >
-            <Menu size={18} /> Menú
+            <div key={menuAbierto ? 'open' : 'closed'} className="icon-spin-animate" style={{ display: 'flex', alignItems: 'center' }}>
+              {menuAbierto ? <X size={18} /> : <Menu size={18} />}
+            </div>
+            Menú
           </button>
-          
+
           {menuAbierto && (
-            <div style={estilos.menuDesplegable}>
-              <button 
-                onClick={() => { setMenuAbierto(false); navigate('/galeria'); }} 
-                style={{...estilos.menuItem, display: 'flex', alignItems: 'center', gap: '8px'}}
+            <div className="menuDesplegable menu-dropdown-animate">
+              <button
+                onClick={() => { setMenuAbierto(false); navigate('/galeria'); }}
+                className="menuItem" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
               >
                 <ImageIcon size={18} /> Galería
               </button>
-              <button 
-                onClick={() => { setMenuAbierto(false); navigate('/notificaciones'); }} 
-                style={{...estilos.menuItem, display: 'flex', alignItems: 'center', gap: '8px'}}
+              <button
+                onClick={() => { setMenuAbierto(false); navigate('/notificaciones'); }}
+                className="menuItem" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
               >
                 <Activity size={18} /> Ver actividad
               </button>
               <div style={{ borderTop: '1px solid #eee', margin: '5px 0' }}></div>
-              <button 
-                style={{...estilos.menuItem, color: '#e74c3c', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px'}} 
-                onClick={() => { setMenuAbierto(false); manejarCerrarSesion(); }}
+              <button
+                className="menuItem" style={{ color: '#e74c3c', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}
+                onClick={() => { setMenuAbierto(false); setMostrarModalSalir(true); }}
               >
                 <LogOut size={18} /> Cerrar Sesión
               </button>
@@ -858,306 +864,253 @@ const publicarProyecto = async () => {
           )}
         </div>
       </div>
-      
-      <div style={{...estilos.perfilHeader, background: obtenerFondoHeader()}}>
-        <img style={estilos.fotoPerfil} src={perfil.avatarUrl || "https://via.placeholder.com/120?text=👤"} alt="Perfil" />
-        <h1 style={{ ...estilos.nombreUsuario, color: perfil.colorLetraNombre }}>{perfil.nombre}</h1>
-        <p style={{ ...estilos.bioUsuario, color: perfil.colorLetraBio }}>{perfil.bio}</p>
-        
-        <div style={estilos.configPerfil}>
-          <h4 style={{color:'#333', marginBottom:'15px', display: 'flex', alignItems: 'center', gap: '8px'}}><Settings size={20} /> Personalizar mi espacio</h4>
-          <div style={estilos.configRow}>
-            <div style={estilos.configGrupo}>
-              <label style={estilos.label}>Foto Perfil (Auto):</label>
-              <input type="file" accept="image/*" onChange={(e) => subirImagen(e, 'Avatares', 'avatar_url', 'avatarUrl')} style={estilos.inputFileSmall} />
+
+      <div className="perfilHeader" style={{ background: obtenerFondoHeader() }}>
+        <img className="fotoPerfil" src={perfil.avatarUrl || "https://via.placeholder.com/120?text=👤"} alt="Perfil" />
+        <h1 className="nombreUsuario" style={{ color: perfil.colorLetraNombre }}>{perfil.nombre}</h1>
+        <p className="bioUsuario" style={{ color: perfil.colorLetraBio }}>{perfil.bio}</p>
+
+        <div className="configPerfil">
+          <h4 style={{ color: '#333', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}><Settings size={20} /> Personalizar mi espacio</h4>
+          <div className="configRow">
+            <div className="configGrupo">
+              <label className="label">Foto Perfil (Auto):</label>
+              <label htmlFor="upload-avatar" className="btnSubirArchivo">
+                <ImageIcon size={14} /> Elegir Foto
+              </label>
+              <input id="upload-avatar" type="file" accept="image/*" onChange={(e) => subirImagen(e, 'Avatares', 'avatar_url', 'avatarUrl')} style={{ display: 'none' }} />
             </div>
-            <input 
-  type="text" 
-  maxLength={25} // <--- NO DEJA ESCRIBIR MÁS DE 25
-  style={estilos.inputText} 
-  value={perfil.nombre} 
-  onChange={(e) => setPerfil({...perfil, nombre: e.target.value})} 
-/>
-<textarea 
-  maxLength={150} // <--- NO DEJA ESCRIBIR MÁS DE 150
-  style={{...estilos.inputText, height: '60px', resize: 'none'}} 
-  value={perfil.bio} 
-  onChange={(e) => setPerfil({...perfil, bio: e.target.value})} 
-/>
+            <input
+              type="text"
+              maxLength={25} // <--- NO DEJA ESCRIBIR MÁS DE 25
+              className="inputText"
+              placeholder="Nombre de usuario"
+              value={perfil.nombre}
+              onChange={(e) => setPerfil({ ...perfil, nombre: e.target.value })}
+            />
+            <textarea
+              maxLength={150} // <--- NO DEJA ESCRIBIR MÁS DE 150
+              className="inputText" style={{ height: '60px', resize: 'none' }}
+              placeholder="Describe tu perfil..."
+              value={perfil.bio}
+              onChange={(e) => setPerfil({ ...perfil, bio: e.target.value })}
+            />
           </div>
 
-          <div style={estilos.configRow}>
-            <div style={estilos.configGrupoColor}><label style={estilos.label}>Principal:</label><input type="color" value={perfil.colorPrincipal} style={estilos.inputColor} onChange={(e) => setPerfil({...perfil, colorPrincipal: e.target.value})} /></div>
-            <div style={estilos.configGrupoColor}><label style={estilos.label}>Fondo Web:</label><input type="color" value={perfil.colorFondoWeb} style={estilos.inputColor} onChange={(e) => setPerfil({...perfil, colorFondoWeb: e.target.value})} /></div>
-            <div style={estilos.configGrupoColor}><label style={estilos.label}>Cuadro:</label><input type="color" value={perfil.colorSecundario} style={estilos.inputColor} onChange={(e) => setPerfil({...perfil, colorSecundario: e.target.value})} /></div>
-            <div style={estilos.configGrupoColor}><label style={estilos.label}>Color texto nombre:</label><input type="color" value={perfil.colorLetraNombre} style={estilos.inputColor} onChange={(e) => setPerfil({...perfil, colorLetraNombre: e.target.value})} /></div>
-            <div style={estilos.configGrupoColor}><label style={estilos.label}>Color texto bio:</label><input type="color" value={perfil.colorLetraBio} style={estilos.inputColor} onChange={(e) => setPerfil({...perfil, colorLetraBio: e.target.value})} /></div>
-            <div style={estilos.configGrupo}><label style={estilos.label}>Fondo (Auto):</label><input type="file" onChange={(e) => subirImagen(e, 'Fondos', 'imagen_fondo_url', 'imagenFondoUrl')} style={estilos.inputFileSmall} /></div>
-            
-            <div style={estilos.configGrupo}>
-                <label style={estilos.label}>Plantilla (Auto):</label>
-                <input 
-                    type="number" 
-                    min="1" 
-                    max="50" 
-                    style={estilos.inputText} 
-                    placeholder="Ej: 1"
-                    onChange={async (e) => {
-                        const num = parseInt(e.target.value);
-                        if (num >= 1 && num <= 50) {
-                          const url = `/imagenes/plantillas/textura${num}.png`;
-                          setPerfil({...perfil, imagenFondoUrl: url });
-                          // Guardado automático de plantilla
-                          await supabase.from('perfiles').update({ imagen_fondo_url: url }).eq('id', usuario.id);
-                        } else if (num) {
-                          alert('Plantilla no disponible. Solo hay plantillas del 1 al 50.');
-                          e.target.value = ''; // Limpiar el campo
-                        }
-                    }} 
-                />
+          <div className="configRow">
+            <div className="configGrupoColor"><label className="label">Principal:</label><input type="color" value={perfil.colorPrincipal} className="inputColor" onChange={(e) => setPerfil({ ...perfil, colorPrincipal: e.target.value })} /></div>
+            <div className="configGrupoColor"><label className="label">Fondo Web:</label><input type="color" value={perfil.colorFondoWeb} className="inputColor" onChange={(e) => setPerfil({ ...perfil, colorFondoWeb: e.target.value })} /></div>
+            <div className="configGrupoColor"><label className="label">Cuadro:</label><input type="color" value={perfil.colorSecundario} className="inputColor" onChange={(e) => setPerfil({ ...perfil, colorSecundario: e.target.value })} /></div>
+            <div className="configGrupoColor"><label className="label">Color texto nombre:</label><input type="color" value={perfil.colorLetraNombre} className="inputColor" onChange={(e) => setPerfil({ ...perfil, colorLetraNombre: e.target.value })} /></div>
+            <div className="configGrupoColor"><label className="label">Color texto bio:</label><input type="color" value={perfil.colorLetraBio} className="inputColor" onChange={(e) => setPerfil({ ...perfil, colorLetraBio: e.target.value })} /></div>
+            <div className="configGrupo">
+              <label className="label">Fondo (Auto):</label>
+              <label htmlFor="upload-fondo" className="btnSubirArchivo">
+                <ImageIcon size={14} /> Elegir Fondo
+              </label>
+              <input id="upload-fondo" type="file" onChange={(e) => subirImagen(e, 'Fondos', 'imagen_fondo_url', 'imagenFondoUrl')} style={{ display: 'none' }} />
             </div>
 
-            <button style={{...estilos.btnGuardar, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'}} onClick={guardarCambiosPerfil}><Save size={16} /> Guardar Textos/Colores</button>
+            <div className="configGrupo">
+              <label className="label">Plantilla (Auto):</label>
+              <input
+                type="number"
+                min="1"
+                max="50"
+                className="inputText"
+                placeholder="Ej: 1"
+                onChange={async (e) => {
+                  const num = parseInt(e.target.value);
+                  if (num >= 1 && num <= 50) {
+                    const url = `/imagenes/plantillas/textura${num}.png`;
+                    setPerfil({ ...perfil, imagenFondoUrl: url });
+                    // Guardado automático de plantilla
+                    await supabase.from('perfiles').update({ imagen_fondo_url: url }).eq('id', usuario.id);
+                  } else if (num) {
+                    alert('Plantilla no disponible. Solo hay plantillas del 1 al 50.');
+                    e.target.value = ''; // Limpiar el campo
+                  }
+                }}
+              />
+            </div>
+
+            <button className="btnGuardar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={guardarCambiosPerfil}><Save size={16} />Guardar cambios</button>
           </div>
         </div>
       </div>
-            
-       <div style={{...estilos.subirObra, background: perfil.colorSecundario}}>
-  <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Palette size={24} /> Publicar Nuevo Proyecto</h2>
-  <div style={{display: 'flex', gap: '15px', flexWrap: 'wrap'}}>
-    <input 
-      type="text" 
-      maxLength={20} 
-      placeholder="Título (máx 20)" 
-      style={estilos.inputText} 
-      value={nuevaObra.titulo} 
-      onChange={(e) => setNuevaObra({...nuevaObra, titulo: e.target.value})} 
-    />
-    
-    {/* CONECTAMOS LA FUNCIÓN AQUÍ */}
-    <input 
-      type="file" 
-      accept="image/*,video/*,audio/*" 
-      onChange={prepararArchivoProyecto} 
-      style={{color: 'white'}} 
-    />
 
-    <button 
-      style={{...estilos.btnGuardar, background: '#f39c12', display: 'flex', alignItems: 'center', gap: '8px'}} 
-      onClick={publicarProyecto}
-    >
-      <Send size={18} /> Publicar
-    </button>
-  </div>
-</div>
+      <div className="subirObra" style={{ background: perfil.colorSecundario }}>
+        <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Palette size={24} /> Publicar Nuevo Proyecto</h2>
+        <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+          <input
+            type="text"
+            maxLength={20}
+            placeholder="Título (máx 20)"
+            className="inputText"
+            value={nuevaObra.titulo}
+            onChange={(e) => setNuevaObra({ ...nuevaObra, titulo: e.target.value })}
+          />
 
+          {/* CONECTAMOS LA FUNCIÓN AQUÍ */}
+          <label htmlFor="upload-proyecto" className="btnSubirArchivo">
+            <ImageIcon size={18} /> Subir foto
+          </label>
+          <input
+            id="upload-proyecto"
+            type="file"
+            accept="image/*,video/*,audio/*"
+            onChange={prepararArchivoProyecto}
+            style={{ display: 'none' }}
+          />
 
-      <h2 style={estilos.tituloSeccion}>Mi Portafolio</h2>
-      <div style={estilos.gridObras}>
+          <button
+            className="btnGuardar"
+            onClick={publicarProyecto}
+          >
+            <Send size={18} /> Publicar
+          </button>
+        </div>
+      </div>
+
+      <h2 className="tituloSeccion">Mi Portafolio</h2>
+      <div className="gridObras">
         {obras.length > 0 ? obras.map((obra) => (
-          <div key={obra.id} style={estilos.tarjetaObra} onClick={() => abrirProyecto(obra)}>
-            {obra.tipo_archivo === 'video' ? <video src={obra.archivo_url} style={estilos.imgObra} /> :
-             <img src={obra.archivo_url} alt={obra.titulo} style={estilos.imgObra} />}
-            
-            <div style={estilos.infoObra}>
-              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px'}}>
-                <h3 style={{margin: 0}}>{obra.titulo}</h3>
-                <div style={estilos.statsPrivadas}>
-                  <button onClick={(e) => manejarLike(e, obra.id, obra.miLike)} style={{...estilos.btnLikePrivado, display: 'inline-flex', alignItems: 'center', gap: '4px' }} title={obra.miLike ? 'Quitar like' : 'Dar like'}>
+          <div key={obra.id} className="tarjetaObra" onClick={() => abrirProyecto(obra)}>
+            {obra.tipo_archivo === 'video' ? <video src={obra.archivo_url} className="imgObra" /> :
+              <img src={obra.archivo_url} alt={obra.titulo} className="imgObra" />}
+
+            <div className="infoObra">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <h3 style={{ margin: 0 }}>{obra.titulo}</h3>
+                <div className="statsPrivadas">
+                  <button onClick={(e) => manejarLike(e, obra.id, obra.miLike)} className="btnLikePrivado" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }} title={obra.miLike ? 'Quitar like' : 'Dar like'}>
                     {obra.miLike ? <Heart size={14} fill="currentColor" color="#e74c3c" /> : <Heart size={14} color="#555" />} {obra.totalLikes}
                   </button>
-                  <span title="Comentarios" style={{marginLeft: '10px', display: 'inline-flex', alignItems: 'center', gap: '4px'}}><MessageCircle size={14} /> {obra.comentarios?.[0]?.count || 0}</span>
+                  <span title="Comentarios" style={{ marginLeft: '10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><MessageCircle size={14} /> {obra.comentarios?.[0]?.count || 0}</span>
                 </div>
               </div>
-              
-              <button 
+
+              <button
                 onClick={(e) => {
                   e.stopPropagation();
                   borrarProyecto(obra.id);
-                }} 
-                style={{color: '#e74c3c', border:'none', background:'none', cursor:'pointer', fontSize: '0.8em', display: 'flex', alignItems: 'center', gap: '4px'}}
+                }}
+                style={{ color: '#e74c3c', border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.8em', display: 'flex', alignItems: 'center', gap: '4px' }}
               >
                 <Trash2 size={14} /> Eliminar
               </button>
             </div>
           </div>
-        )) : <div style={estilos.sinObras}>Sube tu primer proyecto arriba <Send size={16} style={{verticalAlign: 'middle', marginLeft: '5px'}} /></div>}
+        )) : <div className="sinObras">Sube tu primer proyecto arriba <Send size={16} style={{ verticalAlign: 'middle', marginLeft: '5px' }} /></div>}
       </div>
 
       {/* MODAL DE COMENTARIOS */}
-      {proyectoSeleccionado && (
-        <div style={estilos.overlay} onClick={() => setProyectoSeleccionado(null)}>
-          <div style={estilos.modal} onClick={e => e.stopPropagation()}>
-            <div style={estilos.modalContent}>
-              <div style={estilos.modalMedia}>
-                {proyectoSeleccionado.tipo_archivo === 'video' ? 
-                  <video src={proyectoSeleccionado.archivo_url} controls autoPlay style={estilos.mediaFull} /> : 
-                  <img src={proyectoSeleccionado.archivo_url} style={estilos.mediaFull} alt="" />
-                }
-              </div>
-              <div style={estilos.modalSide}>
-                <button style={estilos.btnClose} onClick={() => {
-                     setProyectoSeleccionado(null);
-                     setRespondiendoA(null); // Limpiamos para que no se quede abierto al cambiar de post
-}}                   ><X size={24} /></button>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                  {editandoTitulo ? (
-                    <>
-                      <input
-                        value={tituloEditando}
-                        onChange={(e) => setTituloEditando(e.target.value)}
-                        maxLength={20}
-                        style={{ ...estilos.inputText, background: '#121212', color: 'white', flex: 1 }}
-                      />
-                      <button onClick={actualizarTituloProyecto} style={estilos.btnResponder}><Save size={16} /></button>
-                      <button onClick={() => { setEditandoTitulo(false); setTituloEditando(proyectoSeleccionado.titulo || ''); }} style={estilos.btnBorrar}><X size={16} /></button>
-                    </>
-                  ) : (
-                    <>
-                      <h2 style={estilos.modalTitulo}>{proyectoSeleccionado.titulo}</h2>
-                      <button onClick={() => setEditandoTitulo(true)} style={{...estilos.btnResponder, alignSelf: 'center'}}><Pencil size={18} /></button>
-                    </>
-                  )}
+      {
+        proyectoSeleccionado && (
+          <div className="overlay" onClick={() => setProyectoSeleccionado(null)}>
+            <div className="modal" onClick={e => e.stopPropagation()}>
+              <div className="modalContent">
+                <div className="modalMedia">
+                  {proyectoSeleccionado.tipo_archivo === 'video' ?
+                    <video src={proyectoSeleccionado.archivo_url} controls autoPlay className="mediaFull" /> :
+                    <img src={proyectoSeleccionado.archivo_url} className="mediaFull" alt="" />
+                  }
                 </div>
-                {proyectoSeleccionado.descripcion && (
-                  <p style={estilos.descripcionText}>{proyectoSeleccionado.descripcion}</p>
-                )}
-                <div style={estilos.listaComentarios}>
-  {/* Renderizamos solo los comentarios RAÍZ (sin padre), el componente se encarga del resto */}
-  {comentarios.filter(c => !c.parent_id).map(c => (
-    <ComentarioIndividual 
-      key={c.id}
-      comentario={c}
-      todosLosComentarios={comentarios}
-      alResponder={setRespondiendoA}
-      alBorrar={borrarComentario}
-      respondiendoA={respondiendoA}
-      enviarRespuesta={enviarRespuesta}
-      textoRespuesta={textoRespuesta}
-      setTextoRespuesta={setTextoRespuesta}
-      currentUserId={usuario?.id}
-      comentarioEditandoId={comentarioEditandoId}
-      comentarioEditandoTexto={comentarioEditandoTexto}
-      setComentarioEditandoId={setComentarioEditandoId}
-      setComentarioEditandoTexto={setComentarioEditandoTexto}
-      actualizarComentario={actualizarComentario}
-    />
-  ))}
-</div>
+                <div className="modalSide">
+                  <button className="btnClose" onClick={() => {
+                    setProyectoSeleccionado(null);
+                    setRespondiendoA(null); // Limpiamos para que no se quede abierto al cambiar de post
+                  }}                   ><X size={24} /></button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                    {editandoTitulo ? (
+                      <>
+                        <input
+                          value={tituloEditando}
+                          onChange={(e) => setTituloEditando(e.target.value)}
+                          maxLength={20}
+                          className="inputText" style={{ background: '#121212', color: 'white', flex: 1 }}
+                        />
+                        <button onClick={actualizarTituloProyecto} className="btnResponder"><Save size={16} /></button>
+                        <button onClick={() => { setEditandoTitulo(false); setTituloEditando(proyectoSeleccionado.titulo || ''); }} className="btnBorrar"><X size={16} /></button>
+                      </>
+                    ) : (
+                      <>
+                        <h2 className="modalTitulo">{proyectoSeleccionado.titulo}</h2>
+                        <button onClick={() => setEditandoTitulo(true)} className="btnResponder" style={{ alignSelf: 'center' }}><Pencil size={18} /></button>
+                      </>
+                    )}
+                  </div>
+                  {proyectoSeleccionado.descripcion && (
+                    <p className="descripcionText">{proyectoSeleccionado.descripcion}</p>
+                  )}
+                  <div className="listaComentarios">
+                    {/* Renderizamos solo los comentarios RAÍZ (sin padre), el componente se encarga del resto */}
+                    {comentarios.filter(c => !c.parent_id).map(c => (
+                      <ComentarioIndividual
+                        key={c.id}
+                        comentario={c}
+                        todosLosComentarios={comentarios}
+                        alResponder={setRespondiendoA}
+                        alBorrar={borrarComentario}
+                        respondiendoA={respondiendoA}
+                        enviarRespuesta={enviarRespuesta}
+                        textoRespuesta={textoRespuesta}
+                        setTextoRespuesta={setTextoRespuesta}
+                        currentUserId={usuario?.id}
+                        comentarioEditandoId={comentarioEditandoId}
+                        comentarioEditandoTexto={comentarioEditandoTexto}
+                        setComentarioEditandoId={setComentarioEditandoId}
+                        setComentarioEditandoTexto={setComentarioEditandoTexto}
+                        actualizarComentario={actualizarComentario}
+                      />
+                    ))}
+                  </div>
 
-                <form onSubmit={enviarComentario} style={estilos.formComentario}>
-                  <input 
-                    style={estilos.inputComentario}
-                    placeholder="Escribe un comentario..."
-                    value={nuevoComentario}
-                    onChange={(e) => setNuevoComentario(e.target.value)}
-                  />
-                  <button type="submit" disabled={enviandoComentario} style={{...estilos.btnEnviarComment, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                    {enviandoComentario ? '...' : <Send size={18} />}
-                  </button>
-                </form>
+                  <form onSubmit={enviarComentario} className="formComentario">
+                    <input
+                      className="inputComentario"
+                      placeholder="Escribe un comentario..."
+                      value={nuevoComentario}
+                      onChange={(e) => setNuevoComentario(e.target.value)}
+                    />
+                    <button type="submit" disabled={enviandoComentario} className="btnEnviarComment" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {enviandoComentario ? '...' : <Send size={18} />}
+                    </button>
+                  </form>
+                </div>
               </div>
+            </div>
+          </div>
+        )
+      }
+      {/* MODAL DE CONFIRMACIÓN PARA SALIR */}
+      {mostrarModalSalir && (
+        <div className="overlay" onClick={() => setMostrarModalSalir(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ width: '350px', height: 'fit-content', padding: '35px 25px', textAlign: 'center', background: '#ffffffff', border: `1px solid ${perfil.colorPrincipal}`, boxShadow: `0 10px 40px ${perfil.colorPrincipal}33` }}>
+            <h2 style={{ color: '#000', marginBottom: '10px' }}>¿Deseas salir?</h2>
+            <p style={{ color: '#696969ff', marginBottom: '25px', fontSize: '15px' }}>Tu sesión se cerrará de forma segura.</p>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '15px' }}>
+              <button
+                onClick={() => setMostrarModalSalir(false)}
+                className="btnCancelar"
+              >
+                No, quedarme
+              </button>
+              <button
+                onClick={() => { setMostrarModalSalir(false); manejarCerrarSesion(); }}
+                className="btnConfirmar"
+              >
+                <LogOut size={16} /> Sí, salir
+              </button>
             </div>
           </div>
         </div>
       )}
-    </section>
+    </section >
   );
 };
 
-const estilos = {
-  dashboard: { maxWidth: '1200px', margin: '0 auto', padding: '20px', fontFamily: 'Segoe UI, sans-serif' },
-  navBar: { background: 'white', padding: '15px 30px', borderRadius: '15px 15px 0 0', display: 'flex', gap: '10px', boxShadow: '0 5px 20px rgba(0,0,0,0.1)' },
-  btnHamburguesa: { background: '#f07e11', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 10px rgba(240, 126, 17, 0.3)' },
-  menuDesplegable: { position: 'absolute', top: '100%', left: 0, marginTop: '10px', background: 'white', borderRadius: '12px', boxShadow: '0 5px 25px rgba(0,0,0,0.2)', padding: '10px', display: 'flex', flexDirection: 'column', gap: '5px', minWidth: '220px', zIndex: 100 },
-  menuItem: { background: 'transparent', border: 'none', padding: '12px 15px', textAlign: 'left', cursor: 'pointer', borderRadius: '8px', fontSize: '15px', color: '#333', width: '100%', display: 'block', fontWeight: '500' },
-  btnNav: { background: '#4a90e2', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '8px', cursor: 'pointer' },
-  btnCerrar: { background: '#e74c3c', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' },
-  perfilHeader: { textAlign: 'center', marginBottom: '40px', padding: '40px 30px', borderRadius: '0 0 20px 20px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' },
-  fotoPerfil: { width: '130px', height: '130px', borderRadius: '50%', objectFit: 'cover', border: '6px solid white', marginBottom: '15px' },
-  nombreUsuario: { fontSize: '2.8em', color: 'white', fontWeight: 'bold' },
-  bioUsuario: { 
-    color: 'white', 
-    fontSize: '1.2em', 
-    maxWidth: '600px',
-    margin: '0 auto 30px',
-    wordWrap: 'break-word',
-    whiteSpace: 'pre-wrap',
-    lineHeight: '1.4',
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    padding: '10px 14px',
-    borderRadius: '14px'
-  },
-  configPerfil: { background: 'rgba(255,255,255,0.95)', padding: '25px', borderRadius: '18px', textAlign: 'left' },
-  configRow: { display: 'flex', gap: '15px', flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: '15px' },
-  configGrupo: { display: 'flex', flexDirection: 'column', gap: '5px', flex: '1' },
-  configGrupoColor: { display: 'flex', flexDirection: 'column', gap: '5px', alignItems: 'center' },
-  label: { fontSize: '12px', color: '#666', fontWeight: 'bold' },
-  inputColor: { width: '50px', height: '45px', cursor: 'pointer' },
-  inputText: { padding: '12px', borderRadius: '10px', border: '1px solid #ddd', flex: '2' },
-  inputFileSmall: { fontSize: '11px' },
-  btnGuardar: { background: '#27ae60', color: 'white', padding: '12px 25px', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold' },
-  subirObra: { padding: '30px', borderRadius: '20px', marginBottom: '30px', color: 'white' },
-  gridObras: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' },
-  tituloSeccion: { color: 'white', marginBottom: '20px', fontSize: '1.8em' },
-  tarjetaObra: { background: 'white', borderRadius: '15px', overflow: 'hidden', cursor: 'pointer' },
-  imgObra: { width: '100%', height: '180px', objectFit: 'cover' },
-  infoObra: { padding: '15px' },
-  sinObras: { gridColumn: '1/-1', textAlign: 'center', color: 'rgba(255,255,255,0.6)', padding: '60px' },
-  statsPrivadas: { background: '#f8f9fa', padding: '5px 10px', borderRadius: '8px', fontSize: '0.85em', color: '#555', display: 'flex', alignItems: 'center', border: '1px solid #eee' },
-  overlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
-  modal: { width: '85%', maxWidth: '1000px', height: '75vh', background: '#111', borderRadius: '25px', overflow: 'hidden' },
-  modalContent: { display: 'flex', height: '100%' },
-  modalMedia: { flex: 1.5, background: '#000', display: 'flex', alignItems: 'center' },
-  mediaFull: { width: '100%', height: '100%', objectFit: 'contain' },
-  modalSide: { flex: 1, padding: '25px', display: 'flex', flexDirection: 'column', color: 'white' },
-  btnClose: { alignSelf: 'flex-end', background: 'none', border: 'none', color: 'white', fontSize: '24px', cursor: 'pointer' },
-  modalTitulo: { color: '#f07e11', margin: '10px 0' },
-  descripcionText: { fontSize: '0.95em', color: '#ccc', marginBottom: '20px', lineHeight: '1.4', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', wordBreak: 'break-word', background: 'rgba(0,0,0,0.55)', padding: '14px', borderRadius: '12px' },
-  listaComentarios: { flex: 1, overflowY: 'auto' },
-  
-  // CORREGIDO: Fusionamos comentarioItem en uno solo y agregamos la coma que faltaba arriba
-  comentarioItem: { 
-    display: 'flex', 
-    gap: '10px', 
-    marginBottom: '15px', 
-    alignItems: 'center', 
-    justifyContent: 'space-between',
-    padding: '8px 0',
-    borderBottom: '1px solid #333' // Color oscuro para que combine con tu modal
-  },
-  
-  miniAvatarComment: { width: '30px', height: '30px', borderRadius: '50%' },
-  textoComentario: { fontSize: '0.9em', margin: 0, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', wordBreak: 'break-all' },
-  formComentario: { display: 'flex', gap: '10px', marginTop: '10px' },
-  inputComentario: { flex: 1, background: '#222', border: '1px solid #444', color: 'white', padding: '10px', borderRadius: '10px' },
-  btnEnviarComment: { background: '#f07e11', border: 'none', padding: '0 15px', borderRadius: '10px', cursor: 'pointer' }, // <-- Faltaba coma aquí
-  
-  btnBorrarComentario: {
-    background: 'none',
-    border: 'none',
-    color: '#e74c3c',
-    cursor: 'pointer',
-    fontSize: '1em',
-    padding: '5px',
-    marginLeft: '10px',
-    transition: 'transform 0.2s'
-  },
 
-  btnLikePrivado: { background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.85em', padding: '0' },
-  burbujaNotificaciones: {
-    position: 'absolute',
-    top: '-6px',
-    right: '-8px',
-    background: '#e74c3c',
-    color: 'white',
-    borderRadius: '50%',
-    padding: '2px 7px',
-    fontSize: '0.7em',
-    lineHeight: '1',
-    fontWeight: 'bold'
-  }
-};
 
 
 export default Dashboard;
