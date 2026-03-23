@@ -1,10 +1,9 @@
-import './perfil.css';
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import { validarPerfil, validarProyecto } from './validaciones';
 import { moderador } from './moderacion';
-import styles from './perfil.css';
+import styles from '../estilos/perfil.css';
 import { Menu, Image as ImageIcon, Activity, LogOut, Heart, MessageCircle, Trash2, Pencil, Save, X, Send, Palette, Settings } from 'lucide-react';
 
 

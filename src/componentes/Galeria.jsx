@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { Link, useNavigate } from 'react-router-dom'; // Añadido useNavigate
 import imagenDeFondo from '../imagenes/fondo.jpg';
-import { User } from 'lucide-react';
+import { User, MessageCircle, Heart, Search, Save, X, Pencil, Trash2, Send } from 'lucide-react';
 import { moderador } from './moderacion';
+import styles from "../estilos/galeria.css"
 
 const ComentarioIndividual = ({ comentario, todosLosComentarios, alResponder, alBorrar, respondiendoA, enviarRespuesta, textoRespuesta, setTextoRespuesta, usuarioActualId, comentarioEditandoId, comentarioEditandoTexto, setComentarioEditandoId, setComentarioEditandoTexto, actualizarComentario }) => {
   const hijos = todosLosComentarios.filter(h => String(h.parent_id) === String(comentario.id));
@@ -25,8 +26,8 @@ const ComentarioIndividual = ({ comentario, todosLosComentarios, alResponder, al
                 onChange={(e) => setComentarioEditandoTexto(e.target.value)}
                 style={{ ...estilos.inputComentario, fontSize: '0.85em', minWidth: '0' }}
               />
-              <button onClick={() => actualizarComentario(comentario.id, comentarioEditandoTexto)} style={estilos.btnResponder}>💾</button>
-              <button onClick={() => { setComentarioEditandoId(null); setComentarioEditandoTexto(''); }} style={estilos.btnBorrar}>✕</button>
+              <button onClick={() => actualizarComentario(comentario.id, comentarioEditandoTexto)} style={estilos.btnResponder}><Save size={14} /></button>
+              <button onClick={() => { setComentarioEditandoId(null); setComentarioEditandoTexto(''); }} style={estilos.btnBorrar}><X size={16} /></button>
             </div>
           ) : (
             <p style={{ fontSize: '0.9em', margin: '5px 0', color: '#fff', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', wordBreak: 'break-all' }}>{comentario.contenido}</p>
@@ -34,19 +35,19 @@ const ComentarioIndividual = ({ comentario, todosLosComentarios, alResponder, al
           <div style={{ display: 'flex', gap: '8px' }}>
             <button onClick={() => alResponder(comentario.id)} style={{ background: '#fff', color: '#000', border: '1px solid #444', borderRadius: '5px', fontSize: '0.75em', padding: '3px 8px', cursor: 'pointer' }}>Responder</button>
             {esPropio && !estaEditando && (
-              <button onClick={() => { setComentarioEditandoId(comentario.id); setComentarioEditandoTexto(comentario.contenido || ''); }} style={{ background: '#fff', color: '#000', border: '1px solid #444', borderRadius: '5px', fontSize: '0.75em', padding: '3px 8px', cursor: 'pointer' }}>✏️</button>
+              <button onClick={() => { setComentarioEditandoId(comentario.id); setComentarioEditandoTexto(comentario.contenido || ''); }} style={{ background: '#fff', color: '#000', border: '1px solid #444', borderRadius: '5px', fontSize: '0.75em', padding: '3px 8px', cursor: 'pointer' }}><Pencil size={12} /></button>
             )}
           </div>
         </div>
         {esPropio && (
-          <button onClick={() => alBorrar(comentario.id, comentario.usuario_id)} style={{ background: 'none', border: 'none', color: '#f00', cursor: 'pointer' }}>🗑️</button>
+          <button onClick={() => alBorrar(comentario.id, comentario.usuario_id)} style={{ background: 'none', border: 'none', color: '#f00', cursor: 'pointer' }}><Trash2 size={14} /></button>
         )}
       </div>
 
       {respondiendoA === comentario.id && (
         <div style={{ display: 'flex', gap: '5px', margin: '8px 0 0 20px' }}>
           <input value={textoRespuesta} onChange={(e) => setTextoRespuesta(e.target.value)} style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #555', background: '#111', color: 'white' }} placeholder="Escribe tu respuesta..." />
-          <button onClick={() => enviarRespuesta(comentario.id)} style={{ background: '#f07e11', border: 'none', color: 'white', borderRadius: '6px', padding: '8px 12px', cursor: 'pointer' }}>➤</button>
+          <button onClick={() => enviarRespuesta(comentario.id)} style={{ background: '#f07e11', border: 'none', color: 'white', borderRadius: '6px', padding: '8px 12px', cursor: 'pointer' }}><Send size={14} /></button>
         </div>
       )}
 
@@ -347,8 +348,8 @@ const Galeria = () => {
               onKeyDown={(e) => e.key === 'Enter' && fetchProyectosGlobales(true)}
               style={estilos.buscador}
             />
-            <button onClick={() => fetchProyectosGlobales(true)} style={estilos.btnBuscar}>🔍</button>
-            {busquedaRealizada && <button onClick={resetearGaleria} style={estilos.btnVolverMini}>✕</button>}
+            <button onClick={() => fetchProyectosGlobales(true)} style={estilos.btnBuscar}><Search size={16} /></button>
+            {busquedaRealizada && <button onClick={resetearGaleria} style={estilos.btnVolverMini}><X size={16} /></button>}
           </div>
           <Link to="/dashboard" style={estilos.btnPerfil}>
             <User size={24} color="white" /> Perfil
@@ -357,7 +358,7 @@ const Galeria = () => {
 
         <div style={estilos.grid}>
           {proyectos.map((obra) => (
-            <div key={obra.id} style={estilos.tarjeta}>
+            <div key={obra.id} className="tarjeta">
               {/* Click en la media abre el modal */}
               <div style={estilos.contenedorMedia} onClick={() => abrirProyecto(obra)}>
                 {obra.tipo_archivo === 'video' ?
@@ -373,14 +374,14 @@ const Galeria = () => {
                   color: obra.miLike ? '#ff4b2b' : '#fff'
                 }}
               >
-                {obra.miLike ? '❤️' : '🤍'} <span>{obra.totalLikes}</span>
+                {obra.miLike ? <Heart size={16} fill="#e74c3c" color="#e74c3c" /> : <Heart size={16} />} <span>{obra.totalLikes}</span>
               </button>
 
               <div style={estilos.footerTarjeta}>
                 <h3 style={estilos.tituloObra} onClick={() => abrirProyecto(obra)}>{obra.titulo}</h3>
                 <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '10px', color: '#222' }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', background: '#fff', borderRadius: '12px', padding: '3px 8px', gap: '4px', fontSize: '0.85em' }}>❤️ {obra.totalLikes}</span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', background: '#fff', borderRadius: '12px', padding: '3px 8px', gap: '4px', fontSize: '0.85em' }}>💬 {obra.totalComentarios}</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', marginBottom: '10px', background: '#f07e11', borderRadius: '12px', padding: '3px 8px', gap: '4px', fontSize: '0.85em' }}><Heart size={16} fill="#e74c3c" color="#e74c3c" /> {obra.totalLikes}</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', marginBottom: '10px', background: '#f07e11', borderRadius: '12px', padding: '3px 8px', gap: '4px', fontSize: '0.85em' }}><MessageCircle size={16} fill="#fff" color="#fff" /> {obra.totalComentarios}</span>
                 </div>
                 {/* CLICK AQUÍ ENVÍA AL PERFIL DEL USUARIO */}
                 <div
@@ -393,14 +394,8 @@ const Galeria = () => {
                   <img src={obra.perfiles?.avatar_url || "https://via.placeholder.com/30"} style={estilos.miniAvatar} alt="" />
                   <span style={estilos.nombreAutor}>{obra.perfiles?.nombre_completo}</span>
                 </div>
-              </div>              <div style={{ marginTop: '8px', display: 'flex', gap: '10px', alignItems: 'center' }}>
-                <span style={{ background: '#111', color: '#fff', borderRadius: '12px', padding: '4px 8px', fontSize: '0.85em', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                  ❤️ {obra.totalLikes ?? 0}
-                </span>
-                <span style={{ background: '#111', color: '#fff', borderRadius: '12px', padding: '4px 8px', fontSize: '0.85em', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                  💬 {obra.totalComentarios ?? obra.comentarios?.[0]?.count ?? 0}
-                </span>
-              </div>            </div>
+              </div>
+            </div>
           ))}
         </div>
       </div>
@@ -417,7 +412,7 @@ const Galeria = () => {
                 }
               </div>
               <div style={estilos.modalSide}>
-                <button style={estilos.btnClose} onClick={() => setProyectoSeleccionado(null)}>✕</button>
+                <button style={estilos.btnClose} onClick={() => setProyectoSeleccionado(null)}><X size={16} /></button>
                 <h2 style={estilos.modalTitulo}>{proyectoSeleccionado.titulo}</h2>
                 <p style={{ color: '#ccc', margin: '5px 0 12px 0', fontSize: '0.9em' }}>
                   {comentarios.length} comentario{comentarios.length === 1 ? '' : 's'}
@@ -452,7 +447,7 @@ const Galeria = () => {
                     onChange={(e) => setNuevoComentario(e.target.value)}
                   />
                   <button type="submit" disabled={enviandoComentario} style={estilos.btnEnviar}>
-                    {enviandoComentario ? '...' : '➤'}
+                    {enviandoComentario ? '...' : <Send size={16} />}
                   </button>
                 </form>
               </div>
@@ -477,7 +472,6 @@ const estilos = {
   btnVolverMini: { background: '#333', color: '#fff', border: 'none', borderRadius: '10px', padding: '0 10px', cursor: 'pointer' },
   btnPerfil: { textDecoration: 'none', background: '#f07e11', color: '#ffffffff', padding: '10px 20px', borderRadius: '12px', fontWeight: 'bold' },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px', overflowY: 'auto', padding: '10px', alignContent: 'start' },
-  tarjeta: { background: '#1a1a1a', borderRadius: '18px', overflow: 'visible', border: '1px solid #333', position: 'relative' },
   contenedorMedia: { width: '100%', height: '180px', backgroundColor: '#000', position: 'relative', overflow: 'hidden', borderRadius: '18px 18px 0 0', cursor: 'pointer' },
   media: { width: '100%', height: '100%', objectFit: 'cover' },
   btnLike: {
@@ -486,7 +480,7 @@ const estilos = {
     display: 'flex', alignItems: 'center', gap: '5px', backdropFilter: 'blur(8px)', zIndex: 100,
     boxShadow: '0 4px 15px rgba(0,0,0,0.5)'
   },
-  footerTarjeta: { padding: '15px' },
+  footerTarjeta: { padding: '15px', marginTop: '10px' },
   tituloObra: { margin: '0 0 10px 0', color: '#fff', fontSize: '1.1em', cursor: 'pointer' },
   autorInfo: { display: 'flex', alignItems: 'center', gap: '10px', borderTop: '1px solid #333', paddingTop: '10px' },
   miniAvatar: { width: '26px', height: '26px', borderRadius: '50%' },
