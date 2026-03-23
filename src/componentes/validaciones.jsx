@@ -48,3 +48,20 @@ export const validarProyecto = (proyecto) => {
     errores
   };
 };
+
+/**
+ * Traduce los errores estándar provistos por la plataforma de Supabase Auth
+ */
+export const traducirErrorSupabase = (mensaje) => {
+  const diccionario = {
+    "Invalid login credentials": "Tu correo o contraseña son incorrectos.",
+    "User not found": "No identificamos ningún usuario con estos datos.",
+    "Please enter a valid email address": "El correo ingresado no tiene un formato válido.",
+    "Please enter an email address": "Por favor, escribe un correo electrónico.",
+    "Password should be at least 6 characters": "La contraseña debe tener al menos 6 caracteres por seguridad.",
+    "User already registered": "Este correo ya está registrado en nuestra plataforma."
+  };
+  
+  // Si encontramos la traducción la retornamos, de lo contrario mostramos el original
+  return diccionario[mensaje] || mensaje;
+};

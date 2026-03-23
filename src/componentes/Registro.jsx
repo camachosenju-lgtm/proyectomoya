@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate, Link } from 'react-router-dom';
-import imagenDeFondo from '../imagenes/fondo.jpg'; 
-import logoProyecto from '../imagenes/logo.png'; 
+import imagenDeFondo from '../imagenes/fondo.jpg';
+import logoProyecto from '../imagenes/logo.png';
+import './estilos.css';
+import ModalMensaje from './ModalMensaje';
+import { traducirErrorSupabase } from './validaciones';
 
 // --- VALIDACIONES DE SEGURIDAD ---
 const esTextoSeguro = (texto) => {
@@ -27,19 +30,26 @@ const validarFormulario = (email, password) => {
 const Registro = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [mensaje, setMensaje] = useState('');
   const [cargando, setCargando] = useState(false);
   const [enviado, setEnviado] = useState(false);
+  const [isFadingOut, setIsFadingOut] = useState(false);
+  const [modal, setModal] = useState({ abierto: false, texto: '', tipo: '' });
   const navigate = useNavigate();
+
+  const handleNavigate = (ruta) => {
+    setIsFadingOut(true);
+    setTimeout(() => {
+      navigate(ruta);
+    }, 450);
+  };
 
   const manejarRegistro = async (e) => {
     e.preventDefault();
-    setMensaje('');
-    
+
     // 1. Validar inputs localmente
     const errorValidacion = validarFormulario(email, password);
     if (errorValidacion) {
-      setMensaje(errorValidacion);
+      setModal({ abierto: true, texto: errorValidacion, tipo: 'error' });
       return;
     }
 
@@ -56,9 +66,9 @@ const Registro = () => {
       if (errorAuth) {
         // Manejo específico para correos duplicados
         if (errorAuth.message.includes('already registered') || errorAuth.status === 422) {
-          setMensaje('Este correo ya está registrado. Intenta iniciar sesión.');
+          setModal({ abierto: true, texto: 'Este correo ya está registrado. Intenta iniciar sesión.', tipo: 'error' });
         } else {
-          setMensaje('Error: ' + errorAuth.message);
+          setModal({ abierto: true, texto: traducirErrorSupabase(errorAuth.message), tipo: 'error' });
         }
         setCargando(false);
         return;
@@ -71,11 +81,11 @@ const Registro = () => {
         const { error: errorPerfil } = await supabase
           .from('perfiles')
           .insert([
-            { 
-              id: usuario.id, 
-              nombre_completo: 'Nuevo Artista', 
+            {
+              id: usuario.id,
+              nombre_completo: 'Nuevo Artista',
               biografia: 'Cuenta pendiente de verificación.',
-              avatar_url: 'https://via.placeholder.com/150' 
+              avatar_url: 'https://via.placeholder.com/150'
             }
           ]);
 
@@ -86,12 +96,12 @@ const Registro = () => {
         await supabase.auth.signOut();
 
         setEnviado(true);
-        setMensaje('¡Registro exitoso! Por seguridad, verifica tu correo electrónico para activar tu cuenta.');
+        setModal({ abierto: true, texto: '¡Registro exitoso! Por seguridad, verifica tu correo electrónico para activar tu cuenta.', tipo: 'exito' });
         setEmail('');
         setPassword('');
       }
     } catch (error) {
-      setMensaje('Error inesperado de conexión.');
+      setModal({ abierto: true, texto: 'Error inesperado de conexión.', tipo: 'error' });
       console.error(error);
     } finally {
       setCargando(false);
@@ -99,22 +109,22 @@ const Registro = () => {
   };
 
   return (
-    <div style={{...estilos.padre, ...estilos.fondoConImagen}}>
-      <div style={estilos.tarjeta}>
-        <div style={estilos.contenedorLogo}>
-          <img src={logoProyecto} alt="Logo" style={estilos.logo} />
+    <div className="registro-padre login-fondoConImagen" style={{ backgroundImage: `url(${imagenDeFondo})` }}>
+      <div className={`registro-tarjeta fade-in ${isFadingOut ? 'fade-out' : ''}`}>
+        <div className="registro-contenedorLogo">
+          <img src={logoProyecto} alt="Logo" className="registro-logo" />
         </div>
 
-        <h2 style={estilos.titulo}>Registro de Usuario</h2>
-        
+        <h2 className="registro-titulo">Registro</h2>
+
         {!enviado ? (
-          <form onSubmit={manejarRegistro} style={estilos.form}>
+          <form onSubmit={manejarRegistro} className="registro-form">
             <input
               type="email"
               placeholder="Tu Gmail de Artista"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              style={estilos.input}
+              className="registro-input"
               required
               disabled={cargando}
             />
@@ -123,55 +133,47 @@ const Registro = () => {
               placeholder="Crea tu Contraseña"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              style={estilos.input}
+              className="registro-input"
               required
               disabled={cargando}
             />
-            <button 
-              type="submit" 
-              style={cargando ? {...estilos.boton, opacity: 0.7} : estilos.boton}
+            <button
+              type="submit"
+              className="login-boton"
+              style={cargando ? { opacity: 0.7 } : {}}
               disabled={cargando}
             >
               {cargando ? 'Procesando...' : 'Crear Mi Cuenta'}
             </button>
           </form>
         ) : (
-          <div style={estilos.zonaExito}>
-            <p style={estilos.mensajeExito}>{mensaje}</p>
-            <button onClick={() => navigate('/login')} style={estilos.botonLogin}>Ir al Login</button>
+          <div className="registro-zonaExito">
+            <h3 style={{ color: '#fff', marginBottom: '20px' }}>¡Registro completado!</h3>
+            <button onClick={() => handleNavigate('/login')} className="registro-botonLogin">Ir al Login</button>
           </div>
         )}
 
         {!enviado && (
           <>
-            {mensaje && <p style={estilos.mensajeError}>{mensaje}</p>}
-            <p style={estilos.footerTexto}>
-              ¿Ya eres parte? <Link to="/login" style={estilos.link}>Loguéate aquí</Link>
+            <p className="registro-footerTexto">
+              ¿Ya eres parte? <a href="#" onClick={(e) => { e.preventDefault(); handleNavigate('/login'); }} className="registro-link">Loguéate aquí</a>
             </p>
           </>
         )}
       </div>
+
+      <ModalMensaje 
+        mensaje={modal.abierto ? modal.texto : ''} 
+        tipo={modal.tipo} 
+        onClose={() => {
+          setModal({ ...modal, abierto: false });
+          if (modal.tipo === 'exito') {
+            handleNavigate('/login');
+          }
+        }} 
+      />
     </div>
   );
-};
-
-// --- ESTILOS (Mantenemos tu diseño oscuro con naranja) ---
-const estilos = {
-  padre: { height: '100vh', width: '100vw', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
-  fondoConImagen: { backgroundImage: `url(${imagenDeFondo})`, backgroundSize: 'cover', backgroundPosition: 'center' },
-  tarjeta: { backgroundColor: 'rgba(10, 10, 10, 0.96)', padding: '45px 40px', borderRadius: '25px', width: '340px', boxShadow: '0 15px 40px rgba(0,0,0,0.7)', backdropFilter: 'blur(15px)', textAlign: 'center', border: '1px solid #333' },
-  contenedorLogo: { marginBottom: '25px', display: 'flex', justifyContent: 'center' },
-  logo: { width: '80px', height: 'auto' },
-  titulo: { color: '#f07e11', marginBottom: '25px', fontSize: '22px' },
-  form: { display: 'flex', flexDirection: 'column', gap: '18px' },
-  input: { padding: '14px', borderRadius: '10px', border: '1px solid #444', backgroundColor: '#181818', color: '#fff', outline: 'none' },
-  boton: { padding: '14px', borderRadius: '10px', border: 'none', backgroundColor: '#f07e11', color: '#000', fontWeight: 'bold', cursor: 'pointer', transition: '0.3s' },
-  zonaExito: { marginTop: '20px' },
-  mensajeExito: { color: '#fff', fontSize: '0.95em', lineHeight: '1.5', marginBottom: '20px' },
-  mensajeError: { color: '#f07e11', marginTop: '18px', fontSize: '0.9em' },
-  botonLogin: { padding: '10px 20px', borderRadius: '8px', border: '1px solid #f07e11', backgroundColor: 'transparent', color: '#f07e11', cursor: 'pointer', fontWeight: 'bold' },
-  footerTexto: { color: '#888', marginTop: '20px', fontSize: '0.9em' },
-  link: { color: '#f07e11', textDecoration: 'none', fontWeight: 'bold' }
 };
 
 export default Registro;

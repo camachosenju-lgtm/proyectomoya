@@ -159,6 +159,7 @@ const Dashboard = ({ alCerrarSesion }) => {
   const [notificacionesLeidasCount, setNotificacionesLeidasCount] = useState(0);
 
   const [editandoTitulo, setEditandoTitulo] = useState(false);
+  const [menuAbierto, setMenuAbierto] = useState(false);
 
   useEffect(() => {
     const almacenadas = localStorage.getItem(STORAGE_KEY_NOTIF_LEIDAS);
@@ -823,13 +824,38 @@ const publicarProyecto = async () => {
   return (
     <section style={estilos.dashboard}>
       <div style={estilos.navBar}>
-        <button style={estilos.btnCerrar} onClick={manejarCerrarSesion}>🚪 Cerrar Sesión</button>
-        <button onClick={() => navigate('/galeria')} style={estilos.btnNav}>🌐 Galería</button>
-        <button onClick={() => navigate('/notificaciones')} style={estilos.btnNav}>
-          📋 Ver actividad
-        </button>
-        {/* BOTÓN ACTUALIZAR: Solo recarga la página */}
-        <button style={estilos.btnNav} onClick={() => window.location.reload()}>🔄 Recargar</button>
+        <div style={{ position: 'relative' }}>
+          <button 
+            style={estilos.btnHamburguesa} 
+            onClick={() => setMenuAbierto(!menuAbierto)}
+          >
+            ☰ Menú
+          </button>
+          
+          {menuAbierto && (
+            <div style={estilos.menuDesplegable}>
+              <button 
+                onClick={() => { setMenuAbierto(false); navigate('/galeria'); }} 
+                style={estilos.menuItem}
+              >
+                🌐 Galería
+              </button>
+              <button 
+                onClick={() => { setMenuAbierto(false); navigate('/notificaciones'); }} 
+                style={estilos.menuItem}
+              >
+                📋 Ver actividad
+              </button>
+              <div style={{ borderTop: '1px solid #eee', margin: '5px 0' }}></div>
+              <button 
+                style={{...estilos.menuItem, color: '#e74c3c', fontWeight: 'bold'}} 
+                onClick={() => { setMenuAbierto(false); manejarCerrarSesion(); }}
+              >
+                🚪 Cerrar Sesión
+              </button>
+            </div>
+          )}
+        </div>
       </div>
       
       <div style={{...estilos.perfilHeader, background: obtenerFondoHeader()}}>
@@ -1041,6 +1067,9 @@ const publicarProyecto = async () => {
 const estilos = {
   dashboard: { maxWidth: '1200px', margin: '0 auto', padding: '20px', fontFamily: 'Segoe UI, sans-serif' },
   navBar: { background: 'white', padding: '15px 30px', borderRadius: '15px 15px 0 0', display: 'flex', gap: '10px', boxShadow: '0 5px 20px rgba(0,0,0,0.1)' },
+  btnHamburguesa: { background: '#f07e11', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 10px rgba(240, 126, 17, 0.3)' },
+  menuDesplegable: { position: 'absolute', top: '100%', left: 0, marginTop: '10px', background: 'white', borderRadius: '12px', boxShadow: '0 5px 25px rgba(0,0,0,0.2)', padding: '10px', display: 'flex', flexDirection: 'column', gap: '5px', minWidth: '220px', zIndex: 100 },
+  menuItem: { background: 'transparent', border: 'none', padding: '12px 15px', textAlign: 'left', cursor: 'pointer', borderRadius: '8px', fontSize: '15px', color: '#333', width: '100%', display: 'block', fontWeight: '500' },
   btnNav: { background: '#4a90e2', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '8px', cursor: 'pointer' },
   btnCerrar: { background: '#e74c3c', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' },
   perfilHeader: { textAlign: 'center', marginBottom: '40px', padding: '40px 30px', borderRadius: '0 0 20px 20px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' },
