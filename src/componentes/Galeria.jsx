@@ -334,7 +334,7 @@ const Galeria = () => {
     <div style={{ ...estilos.padre, ...estilos.fondoConImagen }}>
       <div style={estilos.panelPrincipal}>
         <nav style={estilos.nav}>
-          <h1 style={estilos.logotipo}>Explorer</h1>
+          <h1 style={estilos.logotipo}>Publicaciones</h1>
           <div style={estilos.contenedorBusqueda}>
             <select value={tipoFiltro} onChange={(e) => setTipoFiltro(e.target.value)} style={estilos.selector}>
               <option value="titulo">Proyecto</option>
@@ -351,7 +351,7 @@ const Galeria = () => {
             <button onClick={() => fetchProyectosGlobales(true)} style={estilos.btnBuscar}><Search size={16} /></button>
             {busquedaRealizada && <button onClick={resetearGaleria} style={estilos.btnVolverMini}><X size={16} /></button>}
           </div>
-          <Link to="/dashboard" style={estilos.btnPerfil}>
+          <Link to="/dashboard" className="btnPerfil">
             <User size={24} color="white" /> Perfil
           </Link>
         </nav>
@@ -468,7 +468,7 @@ const estilos = {
   contenedorBusqueda: { display: 'flex', gap: '5px', width: '45%', background: '#111', padding: '5px', borderRadius: '15px', border: '1px solid #444' },
   selector: { background: '#222', color: '#fff', border: 'none', borderRadius: '10px', padding: '0 5px' },
   buscador: { flex: 1, background: 'transparent', border: 'none', padding: '10px', color: '#fff', outline: 'none' },
-  btnBuscar: { background: '#f07e11', border: 'none', borderRadius: '10px', padding: '0 15px', cursor: 'pointer' },
+  btnBuscar: { background: '#f07e11', color: '#fff', border: 'none', borderRadius: '10px', padding: '0 15px', cursor: 'pointer' },
   btnVolverMini: { background: '#333', color: '#fff', border: 'none', borderRadius: '10px', padding: '0 10px', cursor: 'pointer' },
   btnPerfil: { textDecoration: 'none', background: '#f07e11', color: '#ffffffff', padding: '10px 20px', borderRadius: '12px', fontWeight: 'bold' },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px', overflowY: 'auto', padding: '10px', alignContent: 'start' },
