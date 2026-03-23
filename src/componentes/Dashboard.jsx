@@ -3,6 +3,7 @@ import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import { validarPerfil, validarProyecto } from './validaciones'; 
 import { moderador } from './moderacion';
+import { Menu, Image as ImageIcon, Activity, LogOut, Heart, MessageCircle, Trash2, Pencil, Save, X, Send, Palette, Settings } from 'lucide-react';
 
 
 const STORAGE_KEY_NOTIF_LEIDAS = 'pocketwork_notificaciones_leidas';
@@ -50,11 +51,11 @@ const ComentarioIndividual = ({ comentario, todosLosComentarios, alResponder, al
               <button
                 onClick={() => actualizarComentario(comentario.id, comentarioEditandoTexto)}
                 style={estilos.btnResponder}
-              >💾</button>
+              ><Save size={16} /></button>
               <button
                 onClick={() => { setComentarioEditandoId(null); setComentarioEditandoTexto(''); }}
                 style={estilos.btnBorrar}
-              >✕</button>
+              ><X size={16} /></button>
             </div>
           ) : (
             <>
@@ -68,13 +69,13 @@ const ComentarioIndividual = ({ comentario, todosLosComentarios, alResponder, al
                       setComentarioEditandoTexto(comentario.contenido);
                     }}
                     style={estilos.btnResponder}
-                  >✏️</button>
+                  ><Pencil size={14} /></button>
                 )}
               </div>
             </>
           )}
         </div>
-        <button onClick={() => alBorrar(comentario.id)} style={estilos.btnBorrar}>🗑️</button>
+        <button onClick={() => alBorrar(comentario.id)} style={estilos.btnBorrar}><Trash2 size={16} /></button>
       </div>
 
       {/* INPUT DE RESPUESTA SI ESTÁ ACTIVO */}
@@ -90,9 +91,9 @@ const ComentarioIndividual = ({ comentario, todosLosComentarios, alResponder, al
           />
           <button 
             onClick={() => enviarRespuesta(comentario.id)} 
-            style={estilos.btnEnviarComment}
+            style={{...estilos.btnEnviarComment, display: 'flex', alignItems: 'center', justifyContent: 'center'}}
           >
-            ➤
+            <Send size={16} />
           </button>
         </div>
       )}
@@ -829,29 +830,29 @@ const publicarProyecto = async () => {
             style={estilos.btnHamburguesa} 
             onClick={() => setMenuAbierto(!menuAbierto)}
           >
-            ☰ Menú
+            <Menu size={18} /> Menú
           </button>
           
           {menuAbierto && (
             <div style={estilos.menuDesplegable}>
               <button 
                 onClick={() => { setMenuAbierto(false); navigate('/galeria'); }} 
-                style={estilos.menuItem}
+                style={{...estilos.menuItem, display: 'flex', alignItems: 'center', gap: '8px'}}
               >
-                🌐 Galería
+                <ImageIcon size={18} /> Galería
               </button>
               <button 
                 onClick={() => { setMenuAbierto(false); navigate('/notificaciones'); }} 
-                style={estilos.menuItem}
+                style={{...estilos.menuItem, display: 'flex', alignItems: 'center', gap: '8px'}}
               >
-                📋 Ver actividad
+                <Activity size={18} /> Ver actividad
               </button>
               <div style={{ borderTop: '1px solid #eee', margin: '5px 0' }}></div>
               <button 
-                style={{...estilos.menuItem, color: '#e74c3c', fontWeight: 'bold'}} 
+                style={{...estilos.menuItem, color: '#e74c3c', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px'}} 
                 onClick={() => { setMenuAbierto(false); manejarCerrarSesion(); }}
               >
-                🚪 Cerrar Sesión
+                <LogOut size={18} /> Cerrar Sesión
               </button>
             </div>
           )}
@@ -864,7 +865,7 @@ const publicarProyecto = async () => {
         <p style={{ ...estilos.bioUsuario, color: perfil.colorLetraBio }}>{perfil.bio}</p>
         
         <div style={estilos.configPerfil}>
-          <h4 style={{color:'#333', marginBottom:'15px'}}>⚙️ Personalizar mi espacio</h4>
+          <h4 style={{color:'#333', marginBottom:'15px', display: 'flex', alignItems: 'center', gap: '8px'}}><Settings size={20} /> Personalizar mi espacio</h4>
           <div style={estilos.configRow}>
             <div style={estilos.configGrupo}>
               <label style={estilos.label}>Foto Perfil (Auto):</label>
@@ -916,13 +917,13 @@ const publicarProyecto = async () => {
                 />
             </div>
 
-            <button style={estilos.btnGuardar} onClick={guardarCambiosPerfil}>💾 Guardar Textos/Colores</button>
+            <button style={{...estilos.btnGuardar, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'}} onClick={guardarCambiosPerfil}><Save size={16} /> Guardar Textos/Colores</button>
           </div>
         </div>
       </div>
             
        <div style={{...estilos.subirObra, background: perfil.colorSecundario}}>
-  <h2>🎨 Publicar Nuevo Proyecto</h2>
+  <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Palette size={24} /> Publicar Nuevo Proyecto</h2>
   <div style={{display: 'flex', gap: '15px', flexWrap: 'wrap'}}>
     <input 
       type="text" 
@@ -942,10 +943,10 @@ const publicarProyecto = async () => {
     />
 
     <button 
-      style={{...estilos.btnGuardar, background: '#f39c12'}} 
+      style={{...estilos.btnGuardar, background: '#f39c12', display: 'flex', alignItems: 'center', gap: '8px'}} 
       onClick={publicarProyecto}
     >
-      🚀 Publicar
+      <Send size={18} /> Publicar
     </button>
   </div>
 </div>
@@ -962,10 +963,10 @@ const publicarProyecto = async () => {
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px'}}>
                 <h3 style={{margin: 0}}>{obra.titulo}</h3>
                 <div style={estilos.statsPrivadas}>
-                  <button onClick={(e) => manejarLike(e, obra.id, obra.miLike)} style={estilos.btnLikePrivado} title={obra.miLike ? 'Quitar like' : 'Dar like'}>
-                    {obra.miLike ? '❤️' : '🤍'} {obra.totalLikes}
+                  <button onClick={(e) => manejarLike(e, obra.id, obra.miLike)} style={{...estilos.btnLikePrivado, display: 'inline-flex', alignItems: 'center', gap: '4px' }} title={obra.miLike ? 'Quitar like' : 'Dar like'}>
+                    {obra.miLike ? <Heart size={14} fill="currentColor" color="#e74c3c" /> : <Heart size={14} color="#555" />} {obra.totalLikes}
                   </button>
-                  <span title="Comentarios" style={{marginLeft: '10px'}}>💬 {obra.comentarios?.[0]?.count || 0}</span>
+                  <span title="Comentarios" style={{marginLeft: '10px', display: 'inline-flex', alignItems: 'center', gap: '4px'}}><MessageCircle size={14} /> {obra.comentarios?.[0]?.count || 0}</span>
                 </div>
               </div>
               
@@ -974,13 +975,13 @@ const publicarProyecto = async () => {
                   e.stopPropagation();
                   borrarProyecto(obra.id);
                 }} 
-                style={{color: '#e74c3c', border:'none', background:'none', cursor:'pointer', fontSize: '0.8em'}}
+                style={{color: '#e74c3c', border:'none', background:'none', cursor:'pointer', fontSize: '0.8em', display: 'flex', alignItems: 'center', gap: '4px'}}
               >
-                🗑️ Eliminar
+                <Trash2 size={14} /> Eliminar
               </button>
             </div>
           </div>
-        )) : <div style={estilos.sinObras}>Sube tu primer proyecto arriba 🚀</div>}
+        )) : <div style={estilos.sinObras}>Sube tu primer proyecto arriba <Send size={16} style={{verticalAlign: 'middle', marginLeft: '5px'}} /></div>}
       </div>
 
       {/* MODAL DE COMENTARIOS */}
@@ -998,7 +999,7 @@ const publicarProyecto = async () => {
                 <button style={estilos.btnClose} onClick={() => {
                      setProyectoSeleccionado(null);
                      setRespondiendoA(null); // Limpiamos para que no se quede abierto al cambiar de post
-}}                   >✕</button>
+}}                   ><X size={24} /></button>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
                   {editandoTitulo ? (
                     <>
@@ -1008,13 +1009,13 @@ const publicarProyecto = async () => {
                         maxLength={20}
                         style={{ ...estilos.inputText, background: '#121212', color: 'white', flex: 1 }}
                       />
-                      <button onClick={actualizarTituloProyecto} style={estilos.btnResponder}>💾</button>
-                      <button onClick={() => { setEditandoTitulo(false); setTituloEditando(proyectoSeleccionado.titulo || ''); }} style={estilos.btnBorrar}>✕</button>
+                      <button onClick={actualizarTituloProyecto} style={estilos.btnResponder}><Save size={16} /></button>
+                      <button onClick={() => { setEditandoTitulo(false); setTituloEditando(proyectoSeleccionado.titulo || ''); }} style={estilos.btnBorrar}><X size={16} /></button>
                     </>
                   ) : (
                     <>
                       <h2 style={estilos.modalTitulo}>{proyectoSeleccionado.titulo}</h2>
-                      <button onClick={() => setEditandoTitulo(true)} style={estilos.btnResponder}>✏️</button>
+                      <button onClick={() => setEditandoTitulo(true)} style={{...estilos.btnResponder, alignSelf: 'center'}}><Pencil size={18} /></button>
                     </>
                   )}
                 </div>
@@ -1051,8 +1052,8 @@ const publicarProyecto = async () => {
                     value={nuevoComentario}
                     onChange={(e) => setNuevoComentario(e.target.value)}
                   />
-                  <button type="submit" disabled={enviandoComentario} style={estilos.btnEnviarComment}>
-                    {enviandoComentario ? '...' : '➤'}
+                  <button type="submit" disabled={enviandoComentario} style={{...estilos.btnEnviarComment, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                    {enviandoComentario ? '...' : <Send size={18} />}
                   </button>
                 </form>
               </div>
