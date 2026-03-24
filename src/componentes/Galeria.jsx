@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { Link, useNavigate } from 'react-router-dom'; // Añadido useNavigate
 import imagenDeFondo from '../imagenes/fondo.jpg';
-import { User, MessageCircle, Heart, Search, Save, X, Pencil, Trash2, Send } from 'lucide-react';
+import { User, MessageCircle, Heart, Search, Save, X, Pencil, Trash2, Send, Section } from 'lucide-react';
 import { moderador } from './moderacion';
 import styles from "../estilos/galeria.css"
 
@@ -24,30 +24,32 @@ const ComentarioIndividual = ({ comentario, todosLosComentarios, alResponder, al
               <input
                 value={comentarioEditandoTexto}
                 onChange={(e) => setComentarioEditandoTexto(e.target.value)}
-                style={{ ...estilos.inputComentario, fontSize: '0.85em', minWidth: '0' }}
+                className="inputcomentario" style={{ width: '100%', minWidth: '0', flex: 1 }}
               />
-              <button onClick={() => actualizarComentario(comentario.id, comentarioEditandoTexto)} style={estilos.btnResponder}><Save size={14} /></button>
-              <button onClick={() => { setComentarioEditandoId(null); setComentarioEditandoTexto(''); }} style={estilos.btnBorrar}><X size={16} /></button>
+              <button onClick={() => actualizarComentario(comentario.id, comentarioEditandoTexto)} className='btnguardar'><Save size={14} /></button>
+              <button onClick={() => { setComentarioEditandoId(null); setComentarioEditandoTexto(''); }} className='btnborrar'><X size={16} /></button>
             </div>
           ) : (
             <p style={{ fontSize: '0.9em', margin: '5px 0', color: '#fff', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', wordBreak: 'break-all' }}>{comentario.contenido}</p>
           )}
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button onClick={() => alResponder(comentario.id)} style={{ background: '#fff', color: '#000', border: '1px solid #444', borderRadius: '5px', fontSize: '0.75em', padding: '3px 8px', cursor: 'pointer' }}>Responder</button>
-            {esPropio && !estaEditando && (
-              <button onClick={() => { setComentarioEditandoId(comentario.id); setComentarioEditandoTexto(comentario.contenido || ''); }} style={{ background: '#fff', color: '#000', border: '1px solid #444', borderRadius: '5px', fontSize: '0.75em', padding: '3px 8px', cursor: 'pointer' }}><Pencil size={12} /></button>
-            )}
-          </div>
+          {!estaEditando && (
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={() => alResponder(comentario.id)} className='btncomentario'>Responder</button>
+              {esPropio && (
+                <button onClick={() => { setComentarioEditandoId(comentario.id); setComentarioEditandoTexto(comentario.contenido || ''); }} className="btneditar"><Pencil size={12} /></button>
+              )}
+            </div>
+          )}
         </div>
         {esPropio && (
-          <button onClick={() => alBorrar(comentario.id, comentario.usuario_id)} style={{ background: 'none', border: 'none', color: '#f00', cursor: 'pointer' }}><Trash2 size={14} /></button>
+          <button onClick={() => alBorrar(comentario.id, comentario.usuario_id)} className="btnborrar"><Trash2 size={14} /></button>
         )}
       </div>
 
       {respondiendoA === comentario.id && (
-        <div style={{ display: 'flex', gap: '5px', margin: '8px 0 0 20px' }}>
-          <input value={textoRespuesta} onChange={(e) => setTextoRespuesta(e.target.value)} style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #555', background: '#111', color: 'white' }} placeholder="Escribe tu respuesta..." />
-          <button onClick={() => enviarRespuesta(comentario.id)} style={{ background: '#f07e11', border: 'none', color: 'white', borderRadius: '6px', padding: '8px 12px', cursor: 'pointer' }}><Send size={14} /></button>
+        <div>
+          <input value={textoRespuesta} onChange={(e) => setTextoRespuesta(e.target.value)} className='inputcomentario' placeholder="Escribe tu respuesta..." />
+          <button onClick={() => enviarRespuesta(comentario.id)} className="btncomentario"><Send size={16} /></button>
         </div>
       )}
 
@@ -336,9 +338,9 @@ const Galeria = () => {
         <nav style={estilos.nav}>
           <h1 style={estilos.logotipo}>Publicaciones</h1>
           <div style={estilos.contenedorBusqueda}>
-            <select value={tipoFiltro} onChange={(e) => setTipoFiltro(e.target.value)} style={estilos.selector}>
-              <option value="titulo">Proyecto</option>
-              <option value="usuario">Usuario</option>
+            <select value={tipoFiltro} onChange={(e) => setTipoFiltro(e.target.value)} className="selector">
+              <option value="titulo">Proyecto </option>
+              <option value="usuario">Usuario </option>
             </select>
             <input
               type="text"
@@ -348,7 +350,7 @@ const Galeria = () => {
               onKeyDown={(e) => e.key === 'Enter' && fetchProyectosGlobales(true)}
               style={estilos.buscador}
             />
-            <button onClick={() => fetchProyectosGlobales(true)} style={estilos.btnBuscar}><Search size={16} /></button>
+            <button onClick={() => fetchProyectosGlobales(true)} className="btnBuscar"><Search size={20} /></button>
             {busquedaRealizada && <button onClick={resetearGaleria} style={estilos.btnVolverMini}><X size={16} /></button>}
           </div>
           <Link to="/dashboard" className="btnPerfil">
@@ -402,8 +404,8 @@ const Galeria = () => {
 
       {/* MODAL */}
       {proyectoSeleccionado && (
-        <div style={estilos.overlay} onClick={() => setProyectoSeleccionado(null)}>
-          <div style={estilos.modal} onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay" style={estilos.overlay} onClick={() => setProyectoSeleccionado(null)}>
+          <div className="modal-content-anim" style={estilos.modal} onClick={e => e.stopPropagation()}>
             <div style={estilos.modalContent}>
               <div style={estilos.modalMedia}>
                 {proyectoSeleccionado.tipo_archivo === 'video' ?
@@ -441,12 +443,12 @@ const Galeria = () => {
                 </div>
                 <form onSubmit={enviarComentario} style={estilos.formComentario}>
                   <input
-                    style={estilos.inputComentario}
+                    className="inputcomentario"
                     placeholder="Escribe un comentario..."
                     value={nuevoComentario}
                     onChange={(e) => setNuevoComentario(e.target.value)}
                   />
-                  <button type="submit" disabled={enviandoComentario} style={estilos.btnEnviar}>
+                  <button type="submit" disabled={enviandoComentario} className="btnenviar">
                     {enviandoComentario ? '...' : <Send size={16} />}
                   </button>
                 </form>

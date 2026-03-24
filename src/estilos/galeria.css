@@ -26,3 +26,158 @@
     background: #9e4f05;
     color: #fff;
 }
+
+@keyframes fadeInOverlay {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes scaleUpModal {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.modal-overlay {
+    animation: fadeInOverlay 0.25s ease-out forwards;
+}
+
+.modal-content-anim {
+    animation: scaleUpModal 0.25s ease-out forwards;
+}
+
+.btncomentario {
+    color: #636363;
+    font-size: 0.75em;
+    padding: 3px 8px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btncomentario:hover {
+    color: #f07e11;
+}
+
+.inputcomentario {
+    padding: 5px;
+    border-radius: 6px;
+    margin-top: 10px;
+    border: 1px solid #555;
+    background: #111;
+    color: white;
+    font-size: 0.75em;
+    width: 80%;
+    height: 20px;
+}
+
+.inputcomentario:focus {
+    transition: all 0.3s ease;
+    outline: none;
+    box-shadow: 0 0 10px #f07e11;
+    border-color: #f07e11;
+}
+
+.btneditar {
+    background: none;
+    color: #f07e11;
+    border: none;
+    border-radius: 5px;
+    font-size: 0.75em;
+    padding: 3px 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btneditar:hover {
+    background: #f07e11;
+    color: #fff;
+}
+
+.btnborrar {
+    background: none;
+    border: none;
+    color: #f00;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btnborrar:hover {
+    background: #f00;
+    color: #fff;
+}
+
+.btnguardar {
+    background: none;
+    color: #24c700;
+    border: none;
+    border-radius: 5px;
+    font-size: 0.75em;
+    padding: 3px 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btnguardar:hover {
+    background: #24c700;
+    color: #fff;
+}
+
+.btnenviar {
+    background: none;
+    color: #f07e11;
+    margin-top: 15px;
+    border: none;
+    cursor: pointer;
+}
+
+.btnenviar:hover {
+    transition: all 0.3s ease;
+    color: #fff;
+}
+
+.selector {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background: #f07e11 !important;
+    color: #010101;
+    outline: none;
+    border: none;
+    border-radius: 10px;
+    padding: 5px 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.selector:hover {
+    background: #f07e11 !important;
+    color: #fff !important;
+}
+
+.btnBuscar {
+    background: none;
+    color: #f07e11;
+    border: none;
+    border-radius: 10px;
+    padding: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btnBuscar:hover {
+    color: #fff;
+}
