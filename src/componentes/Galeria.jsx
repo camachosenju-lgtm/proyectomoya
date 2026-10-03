@@ -246,7 +246,7 @@ const Galeria = () => {
     }
   };
 
-  const actualizarComentario = async (comentarioId, contenido) => {
+     const actualizarComentario = async (comentarioId, contenido) => {
     if (!contenido.trim()) {
       alert('El contenido no puede estar vacío.');
       return;
@@ -257,11 +257,28 @@ const Galeria = () => {
       return;
     }
 
+    // 1. OBTENER EL USUARIO (Para que el update sepa quién es)
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      alert('Debes iniciar sesión para editar.');
+      return;
+    }
+
+    // 2. MODERACIÓN DE TEXTO (El filtro de seguridad)
+    const textoParaValidar = contenido.trim();
+    const resultadoModeracion = await moderador.validarTexto(textoParaValidar);
+    
+    if (!resultadoModeracion.seguro) {
+      alert('❌ Comentario bloqueado: ' + (resultadoModeracion.razon || 'Contenido inapropiado.'));
+      return;
+    }
+
+    // 3. ACTUALIZACIÓN EN SUPABASE
     const { error } = await supabase
       .from('comentarios')
-      .update({ contenido: contenido.trim() })
+      .update({ contenido: textoParaValidar })
       .eq('id', comentarioId)
-      .eq('usuario_id', userId);
+      .eq('usuario_id', user.id); // Usamos user.id obtenido arriba
 
     if (error) {
       alert('Error al actualizar comentario: ' + error.message);
@@ -269,11 +286,19 @@ const Galeria = () => {
       return;
     }
 
-    setComentarios(prev => prev.map(c => c.id === comentarioId ? { ...c, contenido: contenido.trim() } : c));
+    // 4. ACTUALIZAR ESTADO LOCAL
+    setComentarios(prev => 
+      prev.map(c => c.id === comentarioId ? { ...c, contenido: textoParaValidar } : c)
+    );
+    
     setComentarioEditandoId(null);
     setComentarioEditandoTexto('');
-    if (proyectoSeleccionado?.id) await fetchComentarios(proyectoSeleccionado.id);
-  };
+    
+    if (proyectoSeleccionado?.id) {
+      await fetchComentarios(proyectoSeleccionado.id);
+    }
+};
+
 
   const borrarComentario = async (comentarioId) => {
     const confirmar = window.confirm('¿Estás seguro de que quieres eliminar este comentario?');

@@ -162,29 +162,47 @@ const PerfilPublico = () => {
     }
   };
 
-  const actualizarComentario = async (comentarioId, contenido) => {
-    if (!contenido.trim()) {
+    const actualizarComentario = async (comentarioId, contenido) => {
+    const textoParaValidar = contenido.trim();
+
+    if (!textoParaValidar) {
       alert('El contenido no puede estar vacío.');
       return;
     }
-    if (contenido.trim().length > 100) {
+    
+    // Mantenemos el límite de 100 caracteres de esta vista
+    if (textoParaValidar.length > 100) {
       alert('⚠️ El comentario es demasiado largo (máximo 100 caracteres).');
       return;
     }
 
+    // --- MODERACIÓN DE TEXTO ---
+    // Importante: Asegúrate de tener el import de 'moderador' arriba
+    const resultadoModeracion = await moderador.validarTexto(textoParaValidar);
+    
+    if (!resultadoModeracion.seguro) {
+      alert('❌ Comentario bloqueado: ' + (resultadoModeracion.razon || 'Contenido inapropiado.'));
+      return;
+    }
+
+    // --- ACTUALIZACIÓN EN SUPABASE ---
     const { error } = await supabase
       .from('comentarios')
-      .update({ contenido: contenido.trim() })
+      .update({ contenido: textoParaValidar })
       .eq('id', comentarioId);
+      // Nota: Si tienes el ID del usuario logueado, es buena práctica añadir .eq('usuario_id', miId)
 
     if (error) {
       alert('Error al actualizar comentario: ' + error.message);
       return;
     }
 
-    setComentarios(prev => prev.map(c => c.id === comentarioId ? { ...c, contenido: contenido.trim() } : c));
+    // --- ACTUALIZACIÓN DE ESTADO LOCAL ---
+    setComentarios(prev => 
+      prev.map(c => c.id === comentarioId ? { ...c, contenido: textoParaValidar } : c)
+    );
     setComentarioEditandoId(null);
-  };
+};
 
   const manejarLike = async (e, proyectoId, yaTieneLike) => {
     e.stopPropagation();

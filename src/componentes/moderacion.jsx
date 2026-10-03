@@ -7,7 +7,7 @@ const PALABRAS_PROHIBIDAS = [
   'matar', 'asesinar', 'muerte', 'sangre', 'pistola', 'rifle', 'balazo', 'bomba', 'terrorismo', 'terrorista', 'atentado', 'secuestro', 'violacion', 'golpear', 'navaja', 'cuchillo', 'suicidio', 'veneno', 'masacre', 'sicario', 'cartel', 'droga', 'cocaina', 'heroina', 'metanfetamina',
   'pene', 'vagina', 'sexo', 'porno', 'xxx', 'ereccion', 'orgasmo', 'cojer', 'anal', 'oral', 'clitoris', 'testiculo', 'vibrador', 'hentai', 'semen', 'esperma', 'fetiche', 'sadismo', 'masoquismo', 'pedofilo', 'incesto', 'zoofilia', 'pornografia', 'intercourse', 'ejaculacion',
   'nazi', 'racista', 'xenofobia', 'homofobia', 'fag', 'faggot', 'nigga', 'nigger', 'kike', 'retard', 'retrasado', 'mojadito', 'sudaca', 'machista', 'feminazi',
-  'p.u.t.a', 'm.i.e.r.d.a', 'p-u-t-a', 'sh-it', 'f-u-c-k', 'p3n3', 'v4g1n4', 'm1erd4'
+  'p.u.t.a', 'm.i.e.r.d.a', 'p-u-t-a', 'sh-it', 'f-u-c-k', 'p3n3', 'v4g1n4', 'm1erd4','negrito','negrita','singar'
 ];
 
 export const moderador = {

@@ -108,9 +108,19 @@ const Login = () => {
         </div>
       </form>
 
-      <div className="login-contenedorAcercaDe">
-        <a href="#!" className="login-botonAcercaDe">Acerca de Nosotros</a>
-      </div>
+       {/* Cambia el href="#!" por el evento onClick con handleNavigate */}
+<div className="login-contenedorAcercaDe">
+  <a 
+    href="#" 
+    className="login-botonAcercaDe" 
+    onClick={(e) => { 
+      e.preventDefault(); 
+      handleNavigate('/nosotros'); 
+    }}
+  >
+    Acerca de Nosotros
+  </a>
+</div>
 
       <ModalMensaje
         mensaje={modal.abierto ? modal.texto : ''}

@@ -7,7 +7,8 @@ import Galeria from './componentes/Galeria';
 import PerfilPublico from './componentes/perfilpublico'; // Fíjate en la 'p' minúscula
 import Notificaciones from './componentes/notificaciones';
 import Olvido from './componentes/olvido';
-import ActualizarPassword from './componentes/actualizarpasword';
+import ActualizarPassword from './componentes/actualizarpasword'
+;import Nosotros from './componentes/Nosotros';
 
 function App() {
   return (
@@ -38,6 +39,9 @@ function App() {
 
           {/* RUTA OLVIDO DE CONTRASEÑA */}
           <Route path="/olvido" element={<Olvido />} />
+
+          {/* Ruta para nosotros*/}
+          <Route path="/nosotros" element={<Nosotros />} />
 
           {/* RUTA ACTUALIZAR CONTRASEÑA */}
           <Route path="/actualizar-password" element={<ActualizarPassword />} />
