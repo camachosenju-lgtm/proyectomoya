@@ -1,183 +1,287 @@
-.tarjeta {
-    background: #1a1a1a;
-    border-radius: 18px;
-    overflow: visible;
-    border: 1px solid #000;
-    position: relative;
+/* ============================================================
+   Galería pública — estilos propios (namespace gal-).
+   Construidos sobre los tokens de tema.css.
+   ============================================================ */
+
+.gal-pantalla {
+  min-height: 100vh;
+  padding: var(--sp-5);
 }
 
-.tarjeta:hover {
-    transform: scale(1.05);
-    transition: all 0.3s ease;
-    box-shadow: 0 0 10px #f07e11;
+.gal-panel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: var(--ancho-max);
+  min-height: 82vh;
+  margin: 0 auto;
+  padding: var(--sp-5);
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-lg);
+  box-shadow: 0 18px 46px var(--sombra-color);
 }
 
-.btnPerfil {
-    background: #f07e11;
-    color: white;
-    border-radius: 15px;
-    padding: 10px 20px;
-    text-decoration: none;
-    cursor: pointer;
-    transition: all 0.3s ease;
+/* ---------- Barra superior ---------- */
+.gal-barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-5);
+  padding-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--borde);
 }
 
-.btnPerfil:hover {
-    background: #9e4f05;
-    color: #fff;
+.gal-titulo {
+  margin: 0;
+  font-size: var(--fs-lg);
+  color: var(--marca-400);
+  letter-spacing: 0.4px;
 }
 
-@keyframes fadeInOverlay {
-    from {
-        opacity: 0;
-    }
-
-    to {
-        opacity: 1;
-    }
+.gal-buscador {
+  display: flex;
+  align-items: center;
+  flex: 1 1 300px;
+  max-width: 520px;
+  gap: var(--sp-1);
+  padding: 4px 4px 4px 10px;
+  background: var(--superficie-2);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-pill);
+  transition: border-color var(--trans), box-shadow var(--trans);
 }
 
-@keyframes scaleUpModal {
-    from {
-        opacity: 0;
-        transform: scale(0.95);
-    }
-
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
+.gal-buscador:focus-within {
+  border-color: var(--marca-500);
+  box-shadow: 0 0 0 3px var(--acento-suave);
 }
 
-.modal-overlay {
-    animation: fadeInOverlay 0.25s ease-out forwards;
+.gal-selector {
+  padding: 8px 4px;
+  font-weight: var(--peso-medio);
+  color: var(--texto);
+  background: transparent;
+  border: none;
+  outline: none;
+  cursor: pointer;
 }
 
-.modal-content-anim {
-    animation: scaleUpModal 0.25s ease-out forwards;
+.gal-selector option {
+  background: var(--superficie);
+  color: var(--texto);
 }
 
-.btncomentario {
-    color: #636363;
-    font-size: 0.75em;
-    padding: 3px 8px;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    transition: all 0.3s ease;
+.gal-entrada {
+  flex: 1;
+  min-width: 0;
+  padding: 8px;
+  color: var(--texto);
+  background: transparent;
+  border: none;
+  outline: none;
 }
 
-.btncomentario:hover {
-    color: #f07e11;
+.gal-entrada::placeholder {
+  color: var(--texto-3);
 }
 
-.inputcomentario {
-    padding: 5px;
-    border-radius: 6px;
-    margin-top: 10px;
-    border: 1px solid #555;
-    background: #111;
-    color: white;
-    font-size: 0.75em;
-    width: 80%;
-    height: 20px;
+.gal-btn-buscar {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  color: var(--sobre-marca);
+  background: linear-gradient(135deg, var(--marca-400), var(--marca-500));
+  border: none;
+  border-radius: var(--radio-pill);
+  cursor: pointer;
+  transition: box-shadow var(--trans);
 }
 
-.inputcomentario:focus {
-    transition: all 0.3s ease;
-    outline: none;
-    box-shadow: 0 0 10px #f07e11;
-    border-color: #f07e11;
+.gal-btn-buscar:hover {
+  box-shadow: 0 6px 20px var(--marca-glow);
 }
 
-.btneditar {
-    background: none;
-    color: #f07e11;
-    border: none;
-    border-radius: 5px;
-    font-size: 0.75em;
-    padding: 3px 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
+/* ---------- Rejilla ---------- */
+.gal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--sp-5);
+  align-content: start;
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--sp-1);
 }
 
-.btneditar:hover {
-    background: #f07e11;
-    color: #fff;
+.gal-tarjeta {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--superficie-2);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-lg);
+  transition: transform var(--trans), border-color var(--trans), box-shadow var(--trans);
 }
 
-.btnborrar {
-    background: none;
-    border: none;
-    color: #f00;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: all 0.3s ease;
+.gal-tarjeta:hover {
+  transform: translateY(-4px);
+  border-color: var(--marca-500);
+  box-shadow: 0 18px 40px var(--sombra-color);
 }
 
-.btnborrar:hover {
-    background: #f00;
-    color: #fff;
+.gal-media {
+  position: relative;
+  height: 200px;
+  background: #000;
+  cursor: pointer;
+  overflow: hidden;
 }
 
-.btnguardar {
-    background: none;
-    color: #24c700;
-    border: none;
-    border-radius: 5px;
-    font-size: 0.75em;
-    padding: 3px 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
+.gal-media img,
+.gal-media video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-.btnguardar:hover {
-    background: #24c700;
-    color: #fff;
+.gal-btn-like {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  color: var(--texto);
+  background: rgba(0, 0, 0, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: var(--radio-pill);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-size: var(--fs-sm);
+  font-weight: var(--peso-medio);
+  cursor: pointer;
+  transition: background var(--trans-rapida), transform var(--trans-rapida);
 }
 
-.btnenviar {
-    background: none;
-    color: #f07e11;
-    margin-top: 15px;
-    border: none;
-    cursor: pointer;
+.gal-btn-like:hover {
+  background: rgba(0, 0, 0, 0.8);
+  transform: scale(1.05);
 }
 
-.btnenviar:hover {
-    transition: all 0.3s ease;
-    color: #fff;
+.gal-btn-like.activo {
+  color: #ff5a4d;
 }
 
-.selector {
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    background: #f07e11 !important;
-    color: #010101;
-    outline: none;
-    border: none;
-    border-radius: 10px;
-    padding: 5px 15px;
-    cursor: pointer;
-    transition: all 0.3s ease;
+.gal-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
 }
 
-.selector:hover {
-    background: #f07e11 !important;
-    color: #fff !important;
+.gal-obra-titulo {
+  margin: 0;
+  font-size: var(--fs-md);
+  color: var(--texto);
+  cursor: pointer;
+  overflow-wrap: anywhere;
 }
 
-.btnBuscar {
-    background: none;
-    color: #f07e11;
-    border: none;
-    border-radius: 10px;
-    padding: 10px;
-    cursor: pointer;
-    transition: all 0.3s ease;
+.gal-obra-titulo:hover {
+  color: var(--marca-400);
 }
 
-.btnBuscar:hover {
-    color: #fff;
+.gal-metricas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.gal-metrica {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  font-size: var(--fs-xs);
+  font-weight: var(--peso-medio);
+  color: var(--marca-400);
+  background: var(--acento-suave);
+  border-radius: var(--radio-pill);
+}
+
+.gal-autor {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-1);
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--borde);
+  background: none;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+  transition: color var(--trans-rapida);
+}
+
+.gal-autor-nombre {
+  font-size: var(--fs-sm);
+  color: var(--texto-2);
+}
+
+.gal-autor:hover .gal-autor-nombre {
+  color: var(--marca-400);
+}
+
+.gal-vacio {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-8) var(--sp-5);
+  text-align: center;
+  color: var(--texto-3);
+}
+
+/* ---------- Carga ---------- */
+.gal-cargando {
+  grid-column: 1 / -1;
+  padding: var(--sp-8);
+  text-align: center;
+  color: var(--texto-2);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 720px) {
+  .gal-pantalla {
+    padding: var(--sp-3);
+  }
+
+  .gal-panel {
+    padding: var(--sp-4);
+  }
+
+  .gal-barra {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .gal-buscador {
+    max-width: none;
+  }
+
+  .gal-grid {
+    grid-template-columns: 1fr;
+  }
 }

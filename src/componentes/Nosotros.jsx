@@ -1,112 +1,72 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import imagenDeFondo from '../imagenes/fondo.jpg'; 
+import { ArrowLeft, Building2 } from 'lucide-react';
+import imagenDeFondo from '../imagenes/fondo.jpg';
 import logoPocketwork from '../imagenes/logo.png';
 import './estilos.css';
+
+const EQUIPO = [
+  'Wuilian Camacho',
+  'Isabell Mora',
+  'Ricardo Romero',
+  'Samuel Medina',
+  'Jose Paez',
+  'Jose Acosta',
+  'Douglas Urquiola',
+  'Alexander Torrealba',
+  'Moises Mendoza',
+  'Maria Morales',
+  'Nicole Caicedo',
+  'Karley Carrero',
+  'Samuel Kostko',
+];
 
 const Nosotros = () => {
   const navigate = useNavigate();
 
   return (
-    // CAMBIO 1: Eliminamos flexbox centrado vertical para que no se recorte arriba
-    <div className="login-padre login-fondoConImagen" style={{ 
-      backgroundImage: `url(${imagenDeFondo})`, 
-      minHeight: '100vh', 
-      display: 'block', // Volvemos a comportamiento normal de bloque
-      padding: '40px 0' // Espacio arriba y abajo para que respire
-    }}>
-      <div className="login-formulario fade-in" style={{ 
-        maxWidth: '1050px', // <--- CAMBIO 2: Mucho más ancho
-        width: '90%',
-        padding: '40px', 
-        margin: '0 auto', // Centrado horizontal
-        marginTop: '20px', 
-        marginBottom: '20px',
-        boxShadow: '0 4px 15px rgba(0,0,0,0.5)' // Un poco de sombra para profundidad
-      }}>
-        
-        <div className="login-cabecera">
-          <img src={logoPocketwork} alt="Logo" className="login-logo" />
-          <h2 className="login-titulo" style={{ letterSpacing: '2px', fontSize: '2rem' }}>POCKETWORK</h2>
+    <div className="auth-pantalla libre" style={{ '--imagen-fondo': `url(${imagenDeFondo})` }}>
+      <div className="auth-tarjeta ancha entrada-fade">
+        <div className="auth-cabecera">
+          <img src={logoPocketwork} alt="Logo de Pocketwork" className="auth-logo" />
+          <h2 className="auth-titulo">Pocketwork</h2>
+          <p className="auth-subtitulo">Portafolios creativos, seguros y personalizables</p>
         </div>
 
-        <div className="nosotros-body" style={{ color: 'white', textAlign: 'left', marginTop: '30px' }}>
-          
-          <section style={{ marginBottom: '30px', borderBottom: '1px solid #333', paddingBottom: '20px' }}>
-            <h3 style={{ color: '#f07e11', fontSize: '1.5rem', marginBottom: '15px' }}>¿Qué es Pocketwork?</h3>
-            <p style={{ lineHeight: '1.7', color: '#ddd', fontSize: '1.05rem' }}>
-              Es una plataforma de gestión de portafolios diseñada para centralizar y potenciar el talento creativo. 
-              Permite a los usuarios organizar sus obras, recibir interacción real y personalizar su entorno visual 
-              bajo una arquitectura robusta y segura, en la cual el usuario puede personalizar su espacio sin tener conocimientos de programación.
-            </p>
-          </section>
-
-          <section style={{ marginBottom: '25px' }}>
-            <h3 style={{ color: '#f07e11', fontSize: '1.5rem', marginBottom: '20px' }}>Equipo de Desarrollo (USM)</h3>
-            <div style={{ 
-              display: 'grid', 
-              // Mantenemos repeat(auto-fit) para que sea responsive, pero ahora caben más
-              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', 
-              gap: '15px', // Un poco más de separación entre tarjetas
-              marginTop: '10px' 
-            }}>
-              {[
-                "Wuilian Camacho",
-                "Eduardo Moukhallaleh",
-                "Ricardo Romero",
-                "Samuel Salas",
-                "David Nannini",
-                "Ricardo Cornieles",
-                "Douglas Urquiola",
-                "Reinaldo Velásquez",
-                "Ethan García"
-              ].map((nombre, index) => (
-                <div key={index} style={{ 
-                  padding: '15px', // Tarjetas un poco más grandes
-                  backgroundColor: 'rgba(255,255,255,0.05)', 
-                  borderRadius: '10px', // Bordes más suaves
-                  borderLeft: '5px solid #f07e11', // Borde más grueso
-                  fontSize: '0.92rem',
-                  color: '#fff'
-                }}>
-                  {nombre}
-                </div>
-              ))}
-            </div>
-
-            <div style={{ 
-              marginTop: '30px',
-              padding: '15px', 
-              backgroundColor: 'rgba(240, 126, 17, 0.1)', 
-              borderRadius: '8px',
-              textAlign: 'center',
-              fontSize: '0.95rem',
-              color: '#f07e11',
-              fontWeight: 'bold',
-              border: '1px dashed #f07e11',
-              letterSpacing: '1px'
-            }}>
-              Facultad de Ingeniería - Ingeniería de Sistemas
-            </div>
-          </section>
-
-          <p style={{ 
-            fontSize: '0.9rem', 
-            textAlign: 'center', 
-            color: '#777', 
-            marginTop: '35px',
-            fontStyle: 'italic' 
-          }}>
-            "Construyendo el futuro desde la creatividad."
+        <section className="bloque-info">
+          <h3>¿Qué es Pocketwork?</h3>
+          <p>
+            Es una plataforma de gestión de portafolios diseñada para centralizar y potenciar el
+            talento creativo. Permite organizar tus obras, recibir interacción real y personalizar
+            tu entorno visual bajo una arquitectura robusta y segura, sin necesidad de
+            conocimientos de programación.
           </p>
-        </div>
+        </section>
 
-        <button 
-          onClick={() => navigate('/login')} 
-          className="login-boton" 
-          style={{ marginTop: '30px', width: '100%', fontWeight: 'bold', fontSize: '1.1rem' }}
+        <section className="bloque-info">
+          <h3>Equipo de Desarrollo (USM)</h3>
+          <div className="grid-equipo">
+            {EQUIPO.map((nombre) => (
+              <div key={nombre} className="tarjeta-miembro">
+                {nombre}
+              </div>
+            ))}
+          </div>
+
+          <div className="facultad">
+            <Building2 size={16} className="icono-inline" />
+            Facultad de Ingeniería · Ingeniería de Sistemas
+          </div>
+        </section>
+
+        <p className="frase-final">"Construyendo el futuro desde la creatividad."</p>
+
+        <button
+          type="button"
+          className="btn btn-primario btn-bloque entrada-modal"
+          onClick={() => navigate('/login')}
         >
-          ← Volver al Inicio de Sesión
+          <ArrowLeft size={18} /> Volver al inicio de sesión
         </button>
       </div>
     </div>
