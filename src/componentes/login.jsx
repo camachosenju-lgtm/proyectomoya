@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
-import { useNavigate } from 'react-router-dom'; // 1. Importamos el "volante"
+import { useNavigate } from 'react-router-dom';
+import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import imagenDeFondo from '../imagenes/fondo.jpg';
 import logoPocketwork from '../imagenes/logo.png';
 import './estilos.css';
@@ -9,16 +10,17 @@ import { traducirErrorSupabase } from './validaciones';
 
 const Login = () => {
   const [datos, setDatos] = useState({ correo: '', clave: '' });
+  const [verClave, setVerClave] = useState(false);
   const [cargando, setCargando] = useState(false);
   const [isFadingOut, setIsFadingOut] = useState(false);
   const [modal, setModal] = useState({ abierto: false, texto: '', tipo: '' });
-  const navigate = useNavigate(); // 2. Inicializamos el hook de navegación
+  const navigate = useNavigate();
 
   const handleNavigate = (ruta) => {
     setIsFadingOut(true);
     setTimeout(() => {
       navigate(ruta);
-    }, 450); // Esperar un poco a que termine la animación
+    }, 450);
   };
 
   const banSQL = /('|;|--|\/\*|\*\/|\b(drop|delete|insert|update|select|truncate|alter|create)\b)/i;
@@ -45,7 +47,7 @@ const Login = () => {
 
     const errorValidar = validarLogin(datos.correo, datos.clave);
     if (errorValidar) {
-      setModal({ abierto: true, texto: errorValidar, tipo: '' });
+      setModal({ abierto: true, texto: errorValidar, tipo: 'info' });
       return;
     }
 
@@ -59,68 +61,103 @@ const Login = () => {
     if (error) {
       setModal({ abierto: true, texto: traducirErrorSupabase(error.message), tipo: 'error' });
     } else {
-      console.log("Usuario logueado:", data.user);
-      // 3. Navegamos directamente a la ruta que definimos en App.js
-      navigate('/dashboard');
+      const { data: perfil } = await supabase
+        .from('perfiles').select('tipo_cuenta').eq('id', data.user.id).single();
+      if (perfil?.tipo_cuenta === 'suspendido') {
+        await supabase.auth.signOut();
+        setModal({ abierto: true, texto: 'Tu cuenta está suspendida. Contacta a un administrador.', tipo: 'error' });
+      } else {
+        navigate('/dashboard');
+      }
     }
     setCargando(false);
   };
 
   return (
-    <div className="login-padre login-fondoConImagen" style={{ backgroundImage: `url(${imagenDeFondo})` }}>
-      <form onSubmit={enviarFormulario} className={`login-formulario ${isFadingOut ? 'fade-out' : 'fade-in'}`}>
-
-        <div className="login-cabecera">
-          <img src={logoPocketwork} alt="Logo" className="login-logo" />
-          <h2 className="login-titulo">Pocketwork</h2>
+    <div
+      className="auth-pantalla"
+      style={{ '--imagen-fondo': `url(${imagenDeFondo})` }}
+    >
+      <form
+        onSubmit={enviarFormulario}
+        className={`auth-tarjeta ${isFadingOut ? 'salida-fade' : 'entrada-fade'}`}
+        noValidate
+      >
+        <div className="auth-cabecera">
+          <img src={logoPocketwork} alt="Logo de Pocketwork" className="auth-logo" />
+          <h2 className="auth-titulo">Pocketwork</h2>
+          <p className="auth-subtitulo">Tu portafolio creativo en un solo lugar</p>
         </div>
 
-        <input
-          name="correo"
-          type="email"
-          placeholder="Tu correo"
-          onChange={manejarCambio}
-          className="login-input"
-          required
-        />
+        <div className="auth-form">
+          <div className="campo-password">
+            <Mail size={18} className="icono-campo" />
+            <input
+              name="correo"
+              type="email"
+              placeholder="Tu correo"
+              aria-label="Correo electrónico"
+              onChange={manejarCambio}
+              className="campo campo-con-icono"
+              autoComplete="email"
+              required
+            />
+          </div>
 
-        <input
-          name="clave"
-          type="password"
-          placeholder="Tu contraseña"
-          onChange={manejarCambio}
-          className="login-input"
-          required
-        />
+          <div className="campo-password">
+            <Lock size={18} className="icono-campo" />
+            <input
+              name="clave"
+              type={verClave ? 'text' : 'password'}
+              placeholder="Tu contraseña"
+              aria-label="Contraseña"
+              onChange={manejarCambio}
+              className="campo campo-con-icono campo-con-ojo"
+              autoComplete="current-password"
+              required
+            />
+            <button
+              type="button"
+              className="boton-ojo"
+              onClick={() => setVerClave((v) => !v)}
+              aria-label={verClave ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              title={verClave ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+            >
+              {verClave ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
 
-        <button type="submit" className="login-boton" disabled={cargando}>
-          {cargando ? 'Entrando...' : 'Entrar al Perfil'}
-        </button>
+          <button type="submit" className="btn btn-primario btn-bloque" disabled={cargando}>
+            {cargando ? 'Entrando...' : 'Entrar al perfil'}
+          </button>
+        </div>
 
-        <div className="login-contenedorLinks">
-          <a href="#" className="login-link" onClick={(e) => { e.preventDefault(); handleNavigate('/olvido'); }}>
+        <div className="auth-links">
+          <button
+            type="button"
+            className="auth-link"
+            onClick={() => handleNavigate('/olvido')}
+          >
             ¿Olvidaste tu contraseña?
-          </a>
-          <div className="login-divisor"></div>
-          <a href="#" className="login-linkSecundario" onClick={(e) => { e.preventDefault(); handleNavigate('/registro'); }}>
-            Crear una cuenta
-          </a>
+          </button>
+          <hr className="divisor sin-margen" />
+          <button
+            type="button"
+            className="auth-link-fuerte"
+            onClick={() => handleNavigate('/registro')}
+          >
+            Crear una cuenta nueva
+          </button>
         </div>
       </form>
 
-       {/* Cambia el href="#!" por el evento onClick con handleNavigate */}
-<div className="login-contenedorAcercaDe">
-  <a 
-    href="#" 
-    className="login-botonAcercaDe" 
-    onClick={(e) => { 
-      e.preventDefault(); 
-      handleNavigate('/nosotros'); 
-    }}
-  >
-    Acerca de Nosotros
-  </a>
-</div>
+      <button
+        type="button"
+        className="boton-acerca"
+        onClick={() => handleNavigate('/nosotros')}
+      >
+        Acerca de nosotros
+      </button>
 
       <ModalMensaje
         mensaje={modal.abierto ? modal.texto : ''}

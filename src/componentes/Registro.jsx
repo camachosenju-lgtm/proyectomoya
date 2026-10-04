@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import imagenDeFondo from '../imagenes/fondo.jpg';
 import logoProyecto from '../imagenes/logo.png';
 import './estilos.css';
@@ -30,6 +31,7 @@ const validarFormulario = (email, password) => {
 const Registro = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [verClave, setVerClave] = useState(false);
   const [cargando, setCargando] = useState(false);
   const [enviado, setEnviado] = useState(false);
   const [isFadingOut, setIsFadingOut] = useState(false);
@@ -57,16 +59,18 @@ const Registro = () => {
 
     try {
       // 2. Intentar registro en Supabase Auth
-      // Nota: Supabase detecta automáticamente si el correo ya existe
       const { data, error: errorAuth } = await supabase.auth.signUp({
         email,
         password,
       });
 
       if (errorAuth) {
-        // Manejo específico para correos duplicados
         if (errorAuth.message.includes('already registered') || errorAuth.status === 422) {
-          setModal({ abierto: true, texto: 'Este correo ya está registrado. Intenta iniciar sesión.', tipo: 'error' });
+          setModal({
+            abierto: true,
+            texto: 'Este correo ya está registrado. Intenta iniciar sesión.',
+            tipo: 'error',
+          });
         } else {
           setModal({ abierto: true, texto: traducirErrorSupabase(errorAuth.message), tipo: 'error' });
         }
@@ -78,25 +82,26 @@ const Registro = () => {
 
       if (usuario) {
         // 3. Crear fila en la tabla 'perfiles' (para el Dashboard)
-        const { error: errorPerfil } = await supabase
-          .from('perfiles')
-          .insert([
-            {
-              id: usuario.id,
-              nombre_completo: 'Nuevo Artista',
-              biografia: 'Cuenta pendiente de verificación.',
-              avatar_url: 'https://via.placeholder.com/150'
-            }
-          ]);
+        const { error: errorPerfil } = await supabase.from('perfiles').insert([
+          {
+            id: usuario.id,
+            nombre_completo: 'Nuevo Artista',
+            biografia: 'Cuenta pendiente de verificación.',
+            avatar_url: 'https://via.placeholder.com/150',
+          },
+        ]);
 
-        if (errorPerfil) console.error("Error Perfil:", errorPerfil.message);
+        if (errorPerfil) console.error('Error Perfil:', errorPerfil.message);
 
         // 4. SEGURIDAD: Cerrar sesión automática tras registro
-        // Esto obliga al usuario a verificar su email antes de entrar.
         await supabase.auth.signOut();
 
         setEnviado(true);
-        setModal({ abierto: true, texto: '¡Registro exitoso! Por seguridad, verifica tu correo electrónico para activar tu cuenta.', tipo: 'exito' });
+        setModal({
+          abierto: true,
+          texto: '¡Registro exitoso! Por seguridad, verifica tu correo electrónico para activar tu cuenta.',
+          tipo: 'exito',
+        });
         setEmail('');
         setPassword('');
       }
@@ -109,68 +114,97 @@ const Registro = () => {
   };
 
   return (
-    <div className="registro-padre login-fondoConImagen" style={{ backgroundImage: `url(${imagenDeFondo})` }}>
-      <div className={`registro-tarjeta fade-in ${isFadingOut ? 'fade-out' : ''}`}>
-        <div className="registro-contenedorLogo">
-          <img src={logoProyecto} alt="Logo" className="registro-logo" />
+    <div className="auth-pantalla" style={{ '--imagen-fondo': `url(${imagenDeFondo})` }}>
+      <div className={`auth-tarjeta ${isFadingOut ? 'salida-fade' : 'entrada-fade'}`}>
+        <div className="auth-cabecera">
+          <img src={logoProyecto} alt="Logo de Pocketwork" className="auth-logo" />
+          <h2 className="auth-titulo">Crear cuenta</h2>
+          <p className="auth-subtitulo">Publica tus obras y recibe interacción real</p>
         </div>
 
-        <h2 className="registro-titulo">Registro</h2>
-
         {!enviado ? (
-          <form onSubmit={manejarRegistro} className="registro-form">
-            <input
-              type="email"
-              placeholder="Tu Gmail de Artista"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="registro-input"
-              required
-              disabled={cargando}
-            />
-            <input
-              type="password"
-              placeholder="Crea tu Contraseña"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="registro-input"
-              required
-              disabled={cargando}
-            />
-            <button
-              type="submit"
-              className="login-boton"
-              style={cargando ? { opacity: 0.7 } : {}}
-              disabled={cargando}
-            >
-              {cargando ? 'Procesando...' : 'Crear Mi Cuenta'}
+          <form onSubmit={manejarRegistro} className="auth-form" noValidate>
+            <div className="campo-password">
+              <Mail size={18} className="icono-campo" />
+              <input
+                type="email"
+                placeholder="Tu correo de artista"
+                aria-label="Correo electrónico"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="campo campo-con-icono"
+                autoComplete="email"
+                required
+                disabled={cargando}
+              />
+            </div>
+
+            <div className="campo-password">
+              <Lock size={18} className="icono-campo" />
+              <input
+                type={verClave ? 'text' : 'password'}
+                placeholder="Crea tu contraseña (mín. 6)"
+                aria-label="Contraseña"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="campo campo-con-icono campo-con-ojo"
+                autoComplete="new-password"
+                required
+                disabled={cargando}
+              />
+              <button
+                type="button"
+                className="boton-ojo"
+                onClick={() => setVerClave((v) => !v)}
+                aria-label={verClave ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              >
+                {verClave ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+
+            <button type="submit" className="btn btn-primario btn-bloque" disabled={cargando}>
+              {cargando ? 'Procesando...' : 'Crear mi cuenta'}
             </button>
           </form>
         ) : (
-          <div className="registro-zonaExito">
-            <h3 style={{ color: '#fff', marginBottom: '20px' }}>¡Registro completado!</h3>
-            <button onClick={() => handleNavigate('/login')} className="registro-botonLogin">Ir al Login</button>
+          <div className="auth-form">
+            <p className="auth-aviso">Revisa tu correo para activar la cuenta antes de entrar.</p>
+            <button
+              type="button"
+              className="btn btn-primario btn-bloque"
+              onClick={() => handleNavigate('/login')}
+            >
+              Ir al inicio de sesión
+            </button>
           </div>
         )}
 
         {!enviado && (
-          <>
-            <p className="registro-footerTexto">
-              ¿Ya eres parte? <a href="#" onClick={(e) => { e.preventDefault(); handleNavigate('/login'); }} className="registro-link">Loguéate aquí</a>
-            </p>
-          </>
+          <div className="auth-links">
+            <hr className="divisor sin-margen" />
+            <span className="auth-link">
+              ¿Ya eres parte?{' '}
+              <button
+                type="button"
+                className="auth-link-fuerte"
+                onClick={() => handleNavigate('/login')}
+              >
+                Inicia sesión aquí
+              </button>
+            </span>
+          </div>
         )}
       </div>
 
-      <ModalMensaje 
-        mensaje={modal.abierto ? modal.texto : ''} 
-        tipo={modal.tipo} 
+      <ModalMensaje
+        mensaje={modal.abierto ? modal.texto : ''}
+        tipo={modal.tipo}
         onClose={() => {
           setModal({ ...modal, abierto: false });
           if (modal.tipo === 'exito') {
             handleNavigate('/login');
           }
-        }} 
+        }}
       />
     </div>
   );

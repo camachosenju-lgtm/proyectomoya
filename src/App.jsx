@@ -1,19 +1,26 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import './App.css';
 import Login from './componentes/login';
 import Registro from './componentes/Registro';
 import Dashboard from './componentes/Dashboard';
 import Galeria from './componentes/Galeria';
-import PerfilPublico from './componentes/perfilpublico'; // Fíjate en la 'p' minúscula
+import PerfilPublico from './componentes/perfilpublico';
 import Notificaciones from './componentes/notificaciones';
 import Olvido from './componentes/olvido';
-import ActualizarPassword from './componentes/actualizarpasword'
-;import Nosotros from './componentes/Nosotros';
+import ActualizarPassword from './componentes/actualizarpasword';
+import Nosotros from './componentes/Nosotros';
+import BotonTema from './componentes/BotonTema';
+import Admin from './componentes/Admin';
+import Retos from './componentes/Retos';
 
 function App() {
   return (
     <Router>
       <div className="App">
+        {/* Control de tema (oscuro/claro) disponible en toda la aplicación */}
+        <BotonTema />
+
         <Routes>
           {/* RUTA INICIAL: Redirige al login por defecto */}
           <Route path="/" element={<Navigate to="/login" />} />
@@ -27,11 +34,10 @@ function App() {
           {/* RUTA DEL DASHBOARD (Privado) */}
           <Route path="/dashboard" element={<Dashboard />} />
 
-          {/* RUTA DE LA GALERÍA PÚBLICA (Tipo Instagram/Pinterest) */}
+          {/* RUTA DE LA GALERÍA PÚBLICA */}
           <Route path="/galeria" element={<Galeria />} />
 
           {/* RUTA DE PERFIL PÚBLICO (Dinámica) */}
-          {/* El :idUsuario permite que React Router capture el ID del artista */}
           <Route path="/perfil/:idUsuario" element={<PerfilPublico />} />
 
           {/* RUTA DE NOTIFICACIONES */}
@@ -40,11 +46,17 @@ function App() {
           {/* RUTA OLVIDO DE CONTRASEÑA */}
           <Route path="/olvido" element={<Olvido />} />
 
-          {/* Ruta para nosotros*/}
+          {/* RUTA NOSOTROS */}
           <Route path="/nosotros" element={<Nosotros />} />
 
           {/* RUTA ACTUALIZAR CONTRASEÑA */}
           <Route path="/actualizar-password" element={<ActualizarPassword />} />
+
+          {/* RUTA ADMIN */}
+          <Route path="/admin" element={<Admin />} />
+
+          {/* RUTA RETOS */}
+          <Route path="/retos" element={<Retos />} />
         </Routes>
       </div>
     </Router>

@@ -1,64 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
-import { Link, useNavigate } from 'react-router-dom'; // Añadido useNavigate
-import imagenDeFondo from '../imagenes/fondo.jpg';
-import { User, MessageCircle, Heart, Search, Save, X, Pencil, Trash2, Send, Section } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { User, MessageCircle, Heart, Search, X, Send, Flag, Trophy } from 'lucide-react';
 import { moderador } from './moderacion';
-import styles from "../estilos/galeria.css"
-
-const ComentarioIndividual = ({ comentario, todosLosComentarios, alResponder, alBorrar, respondiendoA, enviarRespuesta, textoRespuesta, setTextoRespuesta, usuarioActualId, comentarioEditandoId, comentarioEditandoTexto, setComentarioEditandoId, setComentarioEditandoTexto, actualizarComentario }) => {
-  const hijos = todosLosComentarios.filter(h => String(h.parent_id) === String(comentario.id));
-  const nombreDisplay = comentario.perfiles?.nombre_completo || `Usuario ${comentario.usuario_id || 'Anónimo'}`;
-  const avatarUrl = comentario.perfiles?.avatar_url || 'https://via.placeholder.com/40?text=U';
-  const esPropio = String(comentario.usuario_id) === String(usuarioActualId);
-  const estaEditando = String(comentarioEditandoId) === String(comentario.id);
-
-  return (
-    <div style={{ marginBottom: '10px', marginLeft: comentario.parent_id ? '30px' : '0px', borderLeft: comentario.parent_id ? '1px solid #444' : 'none', paddingLeft: comentario.parent_id ? '15px' : '0px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', padding: '10px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-        <img src={avatarUrl} style={estilos.miniAvatarComment} alt="avatar" />
-        <div style={{ flex: 1 }}>
-          <strong style={{ fontSize: '0.8em', color: '#f07e11' }}>{nombreDisplay}</strong>
-          {estaEditando ? (
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '6px' }}>
-              <input
-                value={comentarioEditandoTexto}
-                onChange={(e) => setComentarioEditandoTexto(e.target.value)}
-                className="inputcomentario" style={{ width: '100%', minWidth: '0', flex: 1 }}
-              />
-              <button onClick={() => actualizarComentario(comentario.id, comentarioEditandoTexto)} className='btnguardar'><Save size={14} /></button>
-              <button onClick={() => { setComentarioEditandoId(null); setComentarioEditandoTexto(''); }} className='btnborrar'><X size={16} /></button>
-            </div>
-          ) : (
-            <p style={{ fontSize: '0.9em', margin: '5px 0', color: '#fff', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', wordBreak: 'break-all' }}>{comentario.contenido}</p>
-          )}
-          {!estaEditando && (
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={() => alResponder(comentario.id)} className='btncomentario'>Responder</button>
-              {esPropio && (
-                <button onClick={() => { setComentarioEditandoId(comentario.id); setComentarioEditandoTexto(comentario.contenido || ''); }} className="btneditar"><Pencil size={12} /></button>
-              )}
-            </div>
-          )}
-        </div>
-        {esPropio && (
-          <button onClick={() => alBorrar(comentario.id, comentario.usuario_id)} className="btnborrar"><Trash2 size={14} /></button>
-        )}
-      </div>
-
-      {respondiendoA === comentario.id && (
-        <div>
-          <input value={textoRespuesta} onChange={(e) => setTextoRespuesta(e.target.value)} className='inputcomentario' placeholder="Escribe tu respuesta..." />
-          <button onClick={() => enviarRespuesta(comentario.id)} className="btncomentario"><Send size={16} /></button>
-        </div>
-      )}
-
-      {hijos.map(hijo => (
-        <ComentarioIndividual key={hijo.id} comentario={hijo} todosLosComentarios={todosLosComentarios} alResponder={alResponder} alBorrar={alBorrar} respondiendoA={respondiendoA} enviarRespuesta={enviarRespuesta} textoRespuesta={textoRespuesta} setTextoRespuesta={setTextoRespuesta} usuarioActualId={usuarioActualId} comentarioEditandoId={comentarioEditandoId} comentarioEditandoTexto={comentarioEditandoTexto} setComentarioEditandoId={setComentarioEditandoId} setComentarioEditandoTexto={setComentarioEditandoTexto} actualizarComentario={actualizarComentario} />
-      ))}
-    </div>
-  );
-};
+import ComentarioIndividual from './ComentarioIndividual';
+import AlertModal from './AlertModal';
+import ModalReporte from './ModalReporte';
+import '../estilos/galeria.css';
 
 const Galeria = () => {
   const [proyectos, setProyectos] = useState([]);
@@ -77,10 +25,26 @@ const Galeria = () => {
   const [comentarioEditandoId, setComentarioEditandoId] = useState(null);
   const [comentarioEditandoTexto, setComentarioEditandoTexto] = useState('');
 
-  const navigate = useNavigate(); // Hook para navegación
+  const [alerta, setAlerta] = useState({ visible: false, mensaje: '', tipo: 'info', titulo: '', onConfirm: null });
+  const avisar = (mensaje, tipo = 'info', titulo) =>
+    setAlerta({ visible: true, mensaje, tipo, titulo, onConfirm: null });
+  const pedirConfirmacion = (mensaje, onConfirm, titulo = 'Confirmación') =>
+    setAlerta({ visible: true, mensaje, tipo: 'confirm', titulo, onConfirm });
+
+  const [reporte, setReporte] = useState(null);
+  const [tab, setTab] = useState('todos');
+  const [seguidos, setSeguidos] = useState([]);
+
+  const cerrarReporte = (ok) => {
+    setReporte(null);
+    if (ok) avisar('Reporte enviado. Un moderador lo revisará.', 'exito');
+  };
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     inicializar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const inicializar = async () => {
@@ -88,15 +52,25 @@ const Galeria = () => {
     const currentId = user?.id || null;
     setUserId(currentId);
     fetchProyectosGlobales(false, currentId);
+    if (currentId) cargarSeguidos(currentId);
+  };
+
+  const cargarSeguidos = async (miId) => {
+    const { data } = await supabase.from('seguimientos').select('seguido_id').eq('seguidor_id', miId);
+    setSeguidos((data || []).map((s) => s.seguido_id));
+  };
+
+  const registrarVista = (proyectoId) => {
+    if (!proyectoId) return;
+    supabase.from('vistas').insert({ proyecto_id: proyectoId, usuario_id: userId || null })
+      .then(() => {}, () => {});
   };
 
   const fetchProyectosGlobales = async (esBusqueda = false, idParaCarga = null) => {
     setCargando(true);
-    // Usamos el ID pasado por parámetro o el que está en el estado
     const activeUserId = idParaCarga || userId;
 
     try {
-      // 1. Iniciamos la consulta base
       let query = supabase
         .from('proyectos')
         .select(`
@@ -106,7 +80,6 @@ const Galeria = () => {
           comentarios (count)
         `);
 
-      // 2. Aplicamos filtros de búsqueda si existen
       if (esBusqueda && terminoBusqueda.trim() !== '') {
         const t = `%${terminoBusqueda.trim()}%`;
         if (tipoFiltro === 'titulo') {
@@ -119,18 +92,13 @@ const Galeria = () => {
         setBusquedaRealizada(false);
       }
 
-      // 3. FILTRO CRÍTICO: No mostrar mis propias publicaciones
-      // Solo se aplica si el usuario está logueado (activeUserId no es null)
       if (activeUserId) {
         query = query.not('usuario_id', 'eq', activeUserId);
       }
 
-      // 4. Ordenar por fecha de creación (más recientes primero)
       const { data, error } = await query.order('creado_el', { ascending: false });
-
       if (error) throw error;
 
-      // 5. Procesar los datos para saber si el usuario actual ya dio "Like"
       const proyectosProcesados = data.map(p => {
         const yaTieneMiLike = activeUserId ? p.likes?.some(l => l.usuario_id === activeUserId) : false;
         return {
@@ -143,7 +111,7 @@ const Galeria = () => {
 
       setProyectos(proyectosProcesados);
     } catch (err) {
-      console.error("Error en Galería (Filtro Usuario):", err);
+      console.error('Error en Galería:', err);
     } finally {
       setCargando(false);
     }
@@ -151,6 +119,10 @@ const Galeria = () => {
 
   const abrirProyecto = (proyecto) => {
     setProyectoSeleccionado(proyecto);
+    registrarVista(proyecto.id);
+    setRespondiendoA(null);
+    setComentarioEditandoId(null);
+    setComentarioEditandoTexto('');
     fetchComentarios(proyecto.id);
   };
 
@@ -165,9 +137,8 @@ const Galeria = () => {
       .order('creado_el', { ascending: true });
 
     if (error) {
-      console.error("Error al traer comentarios:", error.message);
+      console.error('Error al traer comentarios:', error.message);
     } else {
-      console.log("Comentarios cargados:", data);
       setComentarios(data || []);
     }
   };
@@ -176,27 +147,23 @@ const Galeria = () => {
     e.preventDefault();
     if (!nuevoComentario.trim() || !userId || !proyectoSeleccionado?.id) return;
 
-    if (nuevoComentario.trim().length > 150) {
-      alert('⚠️ El comentario es demasiado largo (máximo 150 caracteres).');
+    if (nuevoComentario.trim().length > 100) {
+      avisar('El comentario es demasiado largo (máximo 100 caracteres).', 'info');
       return;
     }
 
-    // Validación prioritaria de texto con moderador
     const moderacion = await moderador.validarTexto(nuevoComentario.trim());
     if (!moderacion.seguro) {
-      alert('❌ Comentario bloqueado: ' + (moderacion.razon || 'Contenido inapropiado detectado.'));
-      console.log('Moderación Galería:', moderacion.detalle);
+      avisar(moderacion.razon || 'Contenido inapropiado detectado.', 'error', 'Comentario bloqueado');
       return;
     }
 
     setEnviandoComentario(true);
-    const { error } = await supabase
-      .from('comentarios')
-      .insert({
-        proyecto_id: proyectoSeleccionado.id,
-        usuario_id: userId,
-        contenido: nuevoComentario.trim()
-      });
+    const { error } = await supabase.from('comentarios').insert({
+      proyecto_id: proyectoSeleccionado.id,
+      usuario_id: userId,
+      contenido: nuevoComentario.trim()
+    });
 
     if (!error) {
       setNuevoComentario('');
@@ -207,147 +174,110 @@ const Galeria = () => {
 
   const enviarRespuesta = async (padreId) => {
     if (!proyectoSeleccionado?.id) {
-      alert('Selecciona un proyecto para responder.');
+      avisar('Selecciona un proyecto para responder.', 'info');
       return;
     }
-
     if (!textoRespuesta.trim()) {
-      alert('Escribe algo en la respuesta antes de enviar.');
+      avisar('Escribe algo en la respuesta antes de enviar.', 'info');
+      return;
+    }
+    if (textoRespuesta.trim().length > 100) {
+      avisar('La respuesta es demasiado larga (máximo 100 caracteres).', 'info');
       return;
     }
 
-    if (textoRespuesta.trim().length > 150) {
-      alert('⚠️ El comentario es demasiado largo (máximo 150 caracteres).');
-      return;
-    }
-
-    // Moderación de la respuesta
     const moderacionRespuesta = await moderador.validarTexto(textoRespuesta.trim());
     if (!moderacionRespuesta.seguro) {
-      alert('❌ Respuesta bloqueada: contenido inapropiado detectado.');
+      avisar('Contiene contenido inapropiado.', 'error', 'Respuesta bloqueada');
       return;
     }
 
-    const { error } = await supabase
-      .from('comentarios')
-      .insert({
-        proyecto_id: proyectoSeleccionado.id,
-        usuario_id: userId,
-        contenido: textoRespuesta.trim(),
-        parent_id: padreId
-      });
+    const { error } = await supabase.from('comentarios').insert({
+      proyecto_id: proyectoSeleccionado.id,
+      usuario_id: userId,
+      contenido: textoRespuesta.trim(),
+      parent_id: padreId
+    });
 
     if (!error) {
       setTextoRespuesta('');
       setRespondiendoA(null);
       await fetchComentarios(proyectoSeleccionado.id);
     } else {
-      alert('Error al enviar respuesta: ' + error.message);
+      avisar('Error al enviar respuesta: ' + error.message, 'error');
     }
   };
 
-     const actualizarComentario = async (comentarioId, contenido) => {
+  const actualizarComentario = async (comentarioId, contenido) => {
     if (!contenido.trim()) {
-      alert('El contenido no puede estar vacío.');
+      avisar('El contenido no puede estar vacío.', 'info');
+      return;
+    }
+    if (contenido.trim().length > 100) {
+      avisar('El comentario es demasiado largo (máximo 100 caracteres).', 'info');
       return;
     }
 
-    if (contenido.trim().length > 150) {
-      alert('⚠️ El comentario es demasiado largo (máximo 150 caracteres).');
-      return;
-    }
-
-    // 1. OBTENER EL USUARIO (Para que el update sepa quién es)
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      alert('Debes iniciar sesión para editar.');
+      avisar('Debes iniciar sesión para editar.', 'info');
       return;
     }
 
-    // 2. MODERACIÓN DE TEXTO (El filtro de seguridad)
-    const textoParaValidar = contenido.trim();
-    const resultadoModeracion = await moderador.validarTexto(textoParaValidar);
-    
+    const resultadoModeracion = await moderador.validarTexto(contenido.trim());
     if (!resultadoModeracion.seguro) {
-      alert('❌ Comentario bloqueado: ' + (resultadoModeracion.razon || 'Contenido inapropiado.'));
+      avisar(resultadoModeracion.razon || 'Contenido inapropiado.', 'error', 'Comentario bloqueado');
       return;
     }
 
-    // 3. ACTUALIZACIÓN EN SUPABASE
     const { error } = await supabase
       .from('comentarios')
-      .update({ contenido: textoParaValidar })
+      .update({ contenido: contenido.trim() })
       .eq('id', comentarioId)
-      .eq('usuario_id', user.id); // Usamos user.id obtenido arriba
+      .eq('usuario_id', user.id);
 
     if (error) {
-      alert('Error al actualizar comentario: ' + error.message);
-      console.error(error);
+      avisar('Error al actualizar comentario: ' + error.message, 'error');
       return;
     }
 
-    // 4. ACTUALIZAR ESTADO LOCAL
-    setComentarios(prev => 
-      prev.map(c => c.id === comentarioId ? { ...c, contenido: textoParaValidar } : c)
+    setComentarios(prev =>
+      prev.map(c => c.id === comentarioId ? { ...c, contenido: contenido.trim() } : c)
     );
-    
     setComentarioEditandoId(null);
     setComentarioEditandoTexto('');
-    
-    if (proyectoSeleccionado?.id) {
-      await fetchComentarios(proyectoSeleccionado.id);
-    }
-};
-
-
-  const borrarComentario = async (comentarioId) => {
-    const confirmar = window.confirm('¿Estás seguro de que quieres eliminar este comentario?');
-    if (!confirmar) return;
-
-    const { error } = await supabase
-      .from('comentarios')
-      .delete()
-      .eq('id', comentarioId)
-      .eq('usuario_id', userId);
-
-    if (error) {
-      alert('Error al borrar comentario: ' + error.message);
-      return;
-    }
-
-    setComentarios(prev => prev.filter(c => c.id !== comentarioId));
     if (proyectoSeleccionado?.id) await fetchComentarios(proyectoSeleccionado.id);
   };
-  const eliminarComentario = async (comentarioId, autorId) => {
-    if (!userId || String(autorId) !== String(userId)) return;
 
-    if (window.confirm("¿Estás seguro de que quieres eliminar este comentario?")) {
+  const borrarComentario = (comentarioId) => {
+    pedirConfirmacion('¿Estás seguro de que quieres eliminar este comentario?', async () => {
       const { error } = await supabase
         .from('comentarios')
         .delete()
-        .eq('id', comentarioId);
+        .eq('id', comentarioId)
+        .eq('usuario_id', userId);
 
-      if (!error) {
-        setComentarios(prev => prev.filter(c => c.id !== comentarioId));
-      } else {
-        alert("Error al eliminar comentario: " + error.message);
+      if (error) {
+        avisar('Error al borrar comentario: ' + error.message, 'error');
+        return;
       }
-    }
+      setComentarios(prev => prev.filter(c => c.id !== comentarioId));
+      if (proyectoSeleccionado?.id) await fetchComentarios(proyectoSeleccionado.id);
+    }, 'Eliminar comentario');
   };
 
   const manejarLike = async (e, proyectoId, yaTieneLike) => {
     e.stopPropagation();
-    const activeId = userId;
-    if (!activeId) return;
+    if (!userId) return;
 
     setProyectos(prev => prev.map(p => p.id === proyectoId ?
       { ...p, miLike: !yaTieneLike, totalLikes: yaTieneLike ? p.totalLikes - 1 : p.totalLikes + 1 } : p
     ));
 
     if (yaTieneLike) {
-      await supabase.from('likes').delete().match({ usuario_id: activeId, proyecto_id: proyectoId });
+      await supabase.from('likes').delete().match({ usuario_id: userId, proyecto_id: proyectoId });
     } else {
-      await supabase.from('likes').insert({ usuario_id: activeId, proyecto_id: proyectoId });
+      await supabase.from('likes').insert({ usuario_id: userId, proyecto_id: proyectoId });
     }
   };
 
@@ -357,15 +287,28 @@ const Galeria = () => {
     fetchProyectosGlobales(false);
   };
 
+  const irAPerfilAutor = (e, usuarioIdAutor) => {
+    e.stopPropagation();
+    if (usuarioIdAutor) navigate(`/perfil/${usuarioIdAutor}`);
+  };
+
+  const visibles = proyectos.filter((p) => tab === 'todos' || seguidos.includes(p.usuario_id));
+
   return (
-    <div style={{ ...estilos.padre, ...estilos.fondoConImagen }}>
-      <div style={estilos.panelPrincipal}>
-        <nav style={estilos.nav}>
-          <h1 style={estilos.logotipo}>Publicaciones</h1>
-          <div style={estilos.contenedorBusqueda}>
-            <select value={tipoFiltro} onChange={(e) => setTipoFiltro(e.target.value)} className="selector">
-              <option value="titulo">Proyecto </option>
-              <option value="usuario">Usuario </option>
+    <section className="gal-pantalla">
+      <div className="gal-panel">
+        <nav className="gal-barra">
+          <h1 className="gal-titulo">Publicaciones</h1>
+
+          <div className="gal-buscador">
+            <select
+              value={tipoFiltro}
+              onChange={(e) => setTipoFiltro(e.target.value)}
+              className="gal-selector"
+              aria-label="Tipo de búsqueda"
+            >
+              <option value="titulo">Proyecto</option>
+              <option value="usuario">Usuario</option>
             </select>
             <input
               type="text"
@@ -373,161 +316,164 @@ const Galeria = () => {
               value={terminoBusqueda}
               onChange={(e) => setTerminoBusqueda(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && fetchProyectosGlobales(true)}
-              style={estilos.buscador}
+              className="gal-entrada"
             />
-            <button onClick={() => fetchProyectosGlobales(true)} className="btnBuscar"><Search size={20} /></button>
-            {busquedaRealizada && <button onClick={resetearGaleria} style={estilos.btnVolverMini}><X size={16} /></button>}
+            <button type="button" className="gal-btn-buscar" onClick={() => fetchProyectosGlobales(true)} title="Buscar">
+              <Search size={18} />
+            </button>
+            {busquedaRealizada && (
+              <button type="button" className="btn-icono chico" onClick={resetearGaleria} title="Limpiar búsqueda">
+                <X size={16} />
+              </button>
+            )}
           </div>
-          <Link to="/dashboard" className="btnPerfil">
-            <User size={24} color="white" /> Perfil
-          </Link>
+
+          <div className="fila">
+            <Link to="/retos" className="btn btn-ghost">
+              <Trophy size={18} /> Retos
+            </Link>
+            <Link to="/dashboard" className="btn btn-secundario">
+              <User size={18} /> Mi perfil
+            </Link>
+          </div>
         </nav>
 
-        <div style={estilos.grid}>
-          {proyectos.map((obra) => (
-            <div key={obra.id} className="tarjeta">
-              {/* Click en la media abre el modal */}
-              <div style={estilos.contenedorMedia} onClick={() => abrirProyecto(obra)}>
-                {obra.tipo_archivo === 'video' ?
-                  <video src={obra.archivo_url} style={estilos.media} /> :
-                  <img src={obra.archivo_url} style={estilos.media} alt="" />
-                }
-              </div>
+        <div className="tabs mb-3">
+          <button type="button" className={`tab ${tab === 'todos' ? 'activo' : ''}`} onClick={() => setTab('todos')}>
+            Todos
+          </button>
+          <button type="button" className={`tab ${tab === 'siguiendo' ? 'activo' : ''}`} onClick={() => setTab('siguiendo')}>
+            Siguiendo
+          </button>
+        </div>
 
-              <button
-                onClick={(e) => manejarLike(e, obra.id, !!obra.miLike)}
-                style={{
-                  ...estilos.btnLike,
-                  color: obra.miLike ? '#ff4b2b' : '#fff'
-                }}
-              >
-                {obra.miLike ? <Heart size={16} fill="#e74c3c" color="#e74c3c" /> : <Heart size={16} />} <span>{obra.totalLikes}</span>
-              </button>
-
-              <div style={estilos.footerTarjeta}>
-                <h3 style={estilos.tituloObra} onClick={() => abrirProyecto(obra)}>{obra.titulo}</h3>
-                <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '10px', color: '#222' }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', marginBottom: '10px', background: '#f07e11', borderRadius: '12px', padding: '3px 8px', gap: '4px', fontSize: '0.85em' }}><Heart size={16} fill="#e74c3c" color="#e74c3c" /> {obra.totalLikes}</span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', marginBottom: '10px', background: '#f07e11', borderRadius: '12px', padding: '3px 8px', gap: '4px', fontSize: '0.85em' }}><MessageCircle size={16} fill="#fff" color="#fff" /> {obra.totalComentarios}</span>
-                </div>
-                {/* CLICK AQUÍ ENVÍA AL PERFIL DEL USUARIO */}
-                <div
-                  style={{ ...estilos.autorInfo, cursor: 'pointer' }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigate(`/perfil/${obra.usuario_id}`);
-                  }}
-                >
-                  <img src={obra.perfiles?.avatar_url || "https://via.placeholder.com/30"} style={estilos.miniAvatar} alt="" />
-                  <span style={estilos.nombreAutor}>{obra.perfiles?.nombre_completo}</span>
-                </div>
-              </div>
+        <div className="gal-grid">
+          {cargando ? (
+            <p className="gal-cargando">Cargando publicaciones...</p>
+          ) : visibles.length === 0 ? (
+            <div className="gal-vacio">
+              <Search size={34} />
+              <span>{tab === 'siguiendo' ? 'Aún no sigues a nadie con publicaciones. Visita un perfil y pulsa Seguir.' : 'No hay publicaciones para mostrar por ahora.'}</span>
             </div>
-          ))}
+          ) : (
+            visibles.map((obra) => (
+              <article key={obra.id} className="gal-tarjeta">
+                <div className="gal-media" onClick={() => abrirProyecto(obra)}>
+                  {obra.tipo_archivo === 'video' ? (
+                    <video src={obra.archivo_url} muted playsInline preload="metadata" />
+                  ) : (
+                    <img src={obra.archivo_url} alt={obra.titulo} />
+                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => manejarLike(e, obra.id, !!obra.miLike)}
+                    className={`gal-btn-like ${obra.miLike ? 'activo' : ''}`}
+                    title={obra.miLike ? 'Quitar like' : 'Dar like'}
+                  >
+                    <Heart size={15} fill={obra.miLike ? 'currentColor' : 'none'} /> {obra.totalLikes}
+                  </button>
+                </div>
+
+                <div className="gal-info">
+                  <h3 className="gal-obra-titulo" onClick={() => abrirProyecto(obra)}>{obra.titulo}</h3>
+                  <div className="gal-metricas">
+                    <span className="gal-metrica"><Heart size={13} /> {obra.totalLikes}</span>
+                    <span className="gal-metrica"><MessageCircle size={13} /> {obra.totalComentarios}</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="gal-autor"
+                    onClick={(e) => irAPerfilAutor(e, obra.usuario_id)}
+                  >
+                    <img
+                      src={obra.perfiles?.avatar_url || 'https://via.placeholder.com/30?text=U'}
+                      className="avatar avatar-sm"
+                      alt=""
+                    />
+                    <span className="gal-autor-nombre">{obra.perfiles?.nombre_completo}</span>
+                  </button>
+                </div>
+              </article>
+            ))
+          )}
         </div>
       </div>
 
-      {/* MODAL */}
       {proyectoSeleccionado && (
-        <div className="modal-overlay" style={estilos.overlay} onClick={() => setProyectoSeleccionado(null)}>
-          <div className="modal-content-anim" style={estilos.modal} onClick={e => e.stopPropagation()}>
-            <div style={estilos.modalContent}>
-              <div style={estilos.modalMedia}>
-                {proyectoSeleccionado.tipo_archivo === 'video' ?
-                  <video src={proyectoSeleccionado.archivo_url} controls style={estilos.mediaFull} /> :
-                  <img src={proyectoSeleccionado.archivo_url} style={estilos.mediaFull} alt="" />
-                }
+        <div className="modal-fondo ancho" onClick={() => setProyectoSeleccionado(null)}>
+          <div className="modal-obra" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-obra-media">
+              {proyectoSeleccionado.tipo_archivo === 'video' ? (
+                <video src={proyectoSeleccionado.archivo_url} controls autoPlay />
+              ) : (
+                <img src={proyectoSeleccionado.archivo_url} alt={proyectoSeleccionado.titulo} />
+              )}
+            </div>
+            <div className="modal-obra-lado">
+              <div className="modal-obra-cabecera">
+                <h2 className="modal-obra-titulo">{proyectoSeleccionado.titulo}</h2>
+                <button
+                  type="button"
+                  className="accion"
+                  title="Reportar proyecto"
+                  onClick={() => setReporte({ tipo: 'proyecto', objetivoId: proyectoSeleccionado.id, tituloObjetivo: proyectoSeleccionado.titulo })}
+                >
+                  <Flag size={16} />
+                </button>
+                <button type="button" className="btn-icono chico" onClick={() => setProyectoSeleccionado(null)} title="Cerrar">
+                  <X size={16} />
+                </button>
               </div>
-              <div style={estilos.modalSide}>
-                <button style={estilos.btnClose} onClick={() => setProyectoSeleccionado(null)}><X size={16} /></button>
-                <h2 style={estilos.modalTitulo}>{proyectoSeleccionado.titulo}</h2>
-                <p style={{ color: '#ccc', margin: '5px 0 12px 0', fontSize: '0.9em' }}>
-                  {comentarios.length} comentario{comentarios.length === 1 ? '' : 's'}
-                </p>
-                <div style={estilos.listaComentarios}>
-                  {comentarios.filter(c => !c.parent_id).map(c => (
-                    <ComentarioIndividual
-                      key={c.id}
-                      comentario={c}
-                      todosLosComentarios={comentarios}
-                      alResponder={setRespondiendoA}
-                      alBorrar={eliminarComentario}
-                      respondiendoA={respondiendoA}
-                      enviarRespuesta={enviarRespuesta}
-                      textoRespuesta={textoRespuesta}
-                      setTextoRespuesta={setTextoRespuesta}
-                      usuarioActualId={userId}
-                      comentarioEditandoId={comentarioEditandoId}
-                      comentarioEditandoTexto={comentarioEditandoTexto}
-                      setComentarioEditandoId={setComentarioEditandoId}
-                      setComentarioEditandoTexto={setComentarioEditandoTexto}
-                      actualizarComentario={actualizarComentario}
-                    />
-                  ))}
 
-                </div>
-                <form onSubmit={enviarComentario} style={estilos.formComentario}>
-                  <input
-                    className="inputcomentario"
-                    placeholder="Escribe un comentario..."
-                    value={nuevoComentario}
-                    onChange={(e) => setNuevoComentario(e.target.value)}
+              <p className="modal-obra-conteo">
+                {comentarios.length} comentario{comentarios.length === 1 ? '' : 's'}
+              </p>
+
+              <div className="lista-comentarios">
+                {comentarios.filter(c => !c.parent_id).map(c => (
+                  <ComentarioIndividual
+                    key={c.id}
+                    comentario={c}
+                    todosLosComentarios={comentarios}
+                    alResponder={setRespondiendoA}
+                    alBorrar={borrarComentario}
+                    respondiendoA={respondiendoA}
+                    enviarRespuesta={enviarRespuesta}
+                    textoRespuesta={textoRespuesta}
+                    setTextoRespuesta={setTextoRespuesta}
+                    currentUserId={userId}
+                    comentarioEditandoId={comentarioEditandoId}
+                    comentarioEditandoTexto={comentarioEditandoTexto}
+                    setComentarioEditandoId={setComentarioEditandoId}
+                    setComentarioEditandoTexto={setComentarioEditandoTexto}
+                    actualizarComentario={actualizarComentario}
+                    esMiPublicacion={String(proyectoSeleccionado?.usuario_id) === String(userId)}
+                    alReportar={(c) => setReporte({ tipo: 'comentario', objetivoId: c.id, tituloObjetivo: `Comentario: "${(c.contenido || '').slice(0, 60)}"` })}
                   />
-                  <button type="submit" disabled={enviandoComentario} className="btnenviar">
-                    {enviandoComentario ? '...' : <Send size={16} />}
-                  </button>
-                </form>
+                ))}
               </div>
+
+              <form onSubmit={enviarComentario} className="form-comentario">
+                <input
+                  className="campo"
+                  placeholder="Escribe un comentario..."
+                  value={nuevoComentario}
+                  onChange={(e) => setNuevoComentario(e.target.value)}
+                  maxLength={100}
+                />
+                <button type="submit" disabled={enviandoComentario} className="btn-enviar-comentario" title="Enviar">
+                  <Send size={17} />
+                </button>
+              </form>
             </div>
           </div>
         </div>
       )}
-    </div>
-  );
-};
 
-const estilos = {
-  padre: { height: '100vh', width: '100vw', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
-  fondoConImagen: { backgroundImage: `url(${imagenDeFondo})`, backgroundSize: 'cover', backgroundPosition: 'center' },
-  panelPrincipal: { backgroundColor: 'rgba(15, 15, 15, 0.94)', width: '90%', maxWidth: '1200px', height: '85vh', padding: '30px', borderRadius: '25px', display: 'flex', flexDirection: 'column', border: '1px solid #333' },
-  nav: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', borderBottom: '1px solid #444', paddingBottom: '15px' },
-  logotipo: { color: '#f07e11', fontSize: '24px', fontWeight: 'bold' },
-  contenedorBusqueda: { display: 'flex', gap: '5px', width: '45%', background: '#111', padding: '5px', borderRadius: '15px', border: '1px solid #444' },
-  selector: { background: '#222', color: '#fff', border: 'none', borderRadius: '10px', padding: '0 5px' },
-  buscador: { flex: 1, background: 'transparent', border: 'none', padding: '10px', color: '#fff', outline: 'none' },
-  btnBuscar: { background: '#f07e11', color: '#fff', border: 'none', borderRadius: '10px', padding: '0 15px', cursor: 'pointer' },
-  btnVolverMini: { background: '#333', color: '#fff', border: 'none', borderRadius: '10px', padding: '0 10px', cursor: 'pointer' },
-  btnPerfil: { textDecoration: 'none', background: '#f07e11', color: '#ffffffff', padding: '10px 20px', borderRadius: '12px', fontWeight: 'bold' },
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px', overflowY: 'auto', padding: '10px', alignContent: 'start' },
-  contenedorMedia: { width: '100%', height: '180px', backgroundColor: '#000', position: 'relative', overflow: 'hidden', borderRadius: '18px 18px 0 0', cursor: 'pointer' },
-  media: { width: '100%', height: '100%', objectFit: 'cover' },
-  btnLike: {
-    position: 'absolute', top: '140px', right: '15px', background: 'rgba(0,0,0,0.75)',
-    border: '1px solid #444', borderRadius: '20px', padding: '6px 12px', cursor: 'pointer',
-    display: 'flex', alignItems: 'center', gap: '5px', backdropFilter: 'blur(8px)', zIndex: 100,
-    boxShadow: '0 4px 15px rgba(0,0,0,0.5)'
-  },
-  footerTarjeta: { padding: '15px', marginTop: '10px' },
-  tituloObra: { margin: '0 0 10px 0', color: '#fff', fontSize: '1.1em', cursor: 'pointer' },
-  autorInfo: { display: 'flex', alignItems: 'center', gap: '10px', borderTop: '1px solid #333', paddingTop: '10px' },
-  miniAvatar: { width: '26px', height: '26px', borderRadius: '50%' },
-  miniAvatarComment: { width: '35px', height: '35px', borderRadius: '50%', objectFit: 'cover', marginRight: '10px' },
-  nombreAutor: { fontSize: '0.85em', color: '#aaa' },
-  overlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
-  modal: { width: '80%', maxWidth: '900px', height: '70vh', background: '#111', borderRadius: '20px', overflow: 'hidden', border: '1px solid #333' },
-  modalContent: { display: 'flex', height: '100%' },
-  modalMedia: { flex: 2, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-  mediaFull: { maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' },
-  modalSide: { flex: 1, display: 'flex', flexDirection: 'column', padding: '20px', borderLeft: '1px solid #333', position: 'relative' },
-  btnClose: { position: 'absolute', top: '10px', right: '10px', background: 'none', border: 'none', color: '#fff', fontSize: '20px', cursor: 'pointer' },
-  modalTitulo: { color: '#f07e11', marginBottom: '20px' },
-  listaComentarios: { flex: 1, overflowY: 'auto', marginBottom: '15px' },
-  comentarioItem: { display: 'flex', gap: '10px', marginBottom: '15px' },
-  textoComentario: { color: '#ddd', fontSize: '0.9em', margin: '2px 0 0 0' },
-  btnEliminar: { background: 'none', border: 'none', cursor: 'pointer', padding: '0 5px', opacity: 0.7 },
-  formComentario: { display: 'flex', gap: '10px' },
-  inputComentario: { flex: 1, background: '#222', border: '1px solid #444', borderRadius: '10px', padding: '10px', color: '#fff' },
-  btnEnviar: { background: '#f07e11', border: 'none', borderRadius: '10px', padding: '0 15px', cursor: 'pointer' }
+      <AlertModal alerta={alerta} setAlerta={setAlerta} />
+      <ModalReporte reporte={reporte} onClose={cerrarReporte} />
+    </section>
+  );
 };
 
 export default Galeria;

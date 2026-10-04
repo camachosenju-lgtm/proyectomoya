@@ -3,17 +3,68 @@ import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import { validarPerfil, validarProyecto } from './validaciones';
 import { moderador } from './moderacion';
-import styles from '../estilos/perfil.css';
-import { Menu, Image as ImageIcon, Activity, LogOut, Heart, MessageCircle, Trash2, Pencil, Save, X, Send, Palette, Settings } from 'lucide-react';
-
+import {
+  TEMAS_PERFIL,
+  TEMA_POR_DEFECTO_ID,
+  buscarTemaPerfil,
+  detectarTemaPerfil,
+  esFondoClaro,
+  PLANTILLAS_FONDO,
+} from './temasPerfil';
+import '../estilos/perfil.css';
+import {
+  Menu,
+  User,
+  X,
+  Image as ImageIcon,
+  Activity,
+  LogOut,
+  Heart,
+  MessageCircle,
+  Trash2,
+  Pencil,
+  Save,
+  Send,
+  Palette,
+  Settings,
+  ImagePlus,
+  Inbox,
+  RotateCcw,
+  Trophy,
+  ShieldAlert,
+  Eye,
+  Flag,
+} from 'lucide-react';
+import AlertModal from './AlertModal';
 
 const STORAGE_KEY_NOTIF_LEIDAS = 'pocketwork_notificaciones_leidas';
 
-const ComentarioIndividual = ({ comentario, todosLosComentarios, alResponder, alBorrar, respondiendoA, enviarRespuesta, textoRespuesta, setTextoRespuesta, currentUserId, comentarioEditandoId, comentarioEditandoTexto, setComentarioEditandoId, setComentarioEditandoTexto, actualizarComentario }) => {
+// Comentario con soporte de respuestas anidadas (se renderiza a sí mismo).
+// En el Dashboard siempre se ven publicaciones propias, por eso
+// esMiPublicacion vale true por defecto (el dueño modera su post).
+const ComentarioIndividual = ({
+  comentario,
+  todosLosComentarios,
+  alResponder,
+  alBorrar,
+  respondiendoA,
+  enviarRespuesta,
+  textoRespuesta,
+  setTextoRespuesta,
+  currentUserId,
+  comentarioEditandoId,
+  comentarioEditandoTexto,
+  setComentarioEditandoId,
+  setComentarioEditandoTexto,
+  actualizarComentario,
+  esMiPublicacion = true,
+  alReportar = null,
+}) => {
   const navigate = useNavigate();
-  const hijos = todosLosComentarios.filter(h => String(h.parent_id) === String(comentario.id));
+  const hijos = todosLosComentarios.filter((h) => String(h.parent_id) === String(comentario.id));
   const esPropio = String(comentario.usuario_id) === String(currentUserId);
   const estaEditando = String(comentarioEditandoId) === String(comentario.id);
+  const puedeBorrar = esPropio || esMiPublicacion;
 
   const irAPerfil = () => {
     if (!esPropio && comentario.usuario_id) {
@@ -22,147 +73,206 @@ const ComentarioIndividual = ({ comentario, todosLosComentarios, alResponder, al
   };
 
   return (
-    <div style={{
-      marginBottom: '10px',
-      marginLeft: comentario.parent_id ? '30px' : '0px', // Sangría solo si es hijo
-      borderLeft: comentario.parent_id ? '1px solid #444' : 'none',
-      paddingLeft: comentario.parent_id ? '15px' : '0px'
-    }}>
-      <div className="comentarioItem">
-        <img
-          src={comentario.perfiles?.avatar_url || "..."}
-          className="miniAvatarComment" style={{ cursor: esPropio ? 'default' : 'pointer' }}
-          alt=""
+    <div className={comentario.parent_id ? 'comentario anidado' : 'comentario'}>
+      <img
+        src={comentario.perfiles?.avatar_url || 'https://via.placeholder.com/40?text=U'}
+        className={`avatar avatar-sm ${esPropio ? '' : 'cursor-pointer'}`}
+        alt=""
+        onClick={esPropio ? undefined : irAPerfil}
+      />
+
+      <div className="comentario-cuerpo">
+        <button
+          type="button"
+          className={`comentario-autor ${esPropio ? 'propio' : ''}`}
           onClick={esPropio ? undefined : irAPerfil}
-        />
-        <div style={{ flex: 1 }}>
-          <strong
-            onClick={esPropio ? undefined : irAPerfil}
-            style={{ fontSize: '0.8em', color: '#f07e11', cursor: esPropio ? 'default' : 'pointer' }}
-          >
-            {comentario.perfiles?.nombre_completo}
-          </strong>
-          {estaEditando ? (
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '6px' }}>
-              <input
-                value={comentarioEditandoTexto}
-                onChange={(e) => setComentarioEditandoTexto(e.target.value)}
-                className="inputComentario" style={{ fontSize: '0.85em', minWidth: '0' }}
-              />
+        >
+          {comentario.perfiles?.nombre_completo}
+        </button>
+
+        {estaEditando ? (
+          <div className="fila-respuesta sin-margen-izq">
+            <input
+              value={comentarioEditandoTexto}
+              onChange={(e) => setComentarioEditandoTexto(e.target.value)}
+              className="campo"
+            />
+            <button
+              type="button"
+              onClick={() => actualizarComentario(comentario.id, comentarioEditandoTexto)}
+              className="accion exito"
+              title="Guardar"
+            >
+              <Save size={15} />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setComentarioEditandoId(null);
+                setComentarioEditandoTexto('');
+              }}
+              className="accion peligro"
+              title="Cancelar"
+            >
+              <X size={15} />
+            </button>
+          </div>
+        ) : (
+          <>
+            <p className="comentario-texto">{comentario.contenido}</p>
+            <div className="comentario-acciones">
               <button
-                onClick={() => actualizarComentario(comentario.id, comentarioEditandoTexto)}
-                className="btnResponder"
-              ><Save size={16} /></button>
-              <button
-                onClick={() => { setComentarioEditandoId(null); setComentarioEditandoTexto(''); }}
-                className="btnBorrar"
-              ><X size={16} /></button>
+                type="button"
+                onClick={() => alResponder(comentario.id)}
+                className="accion"
+              >
+                Responder
+              </button>
+              {alReportar && !esPropio && !esMiPublicacion && (
+                <button
+                  type="button"
+                  onClick={() => alReportar(comentario)}
+                  className="accion"
+                  title="Reportar comentario"
+                >
+                  <Flag size={13} />
+                </button>
+              )}
+              {esPropio && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setComentarioEditandoId(comentario.id);
+                    setComentarioEditandoTexto(comentario.contenido);
+                  }}
+                  className="accion"
+                  title="Editar comentario"
+                >
+                  <Pencil size={13} />
+                </button>
+              )}
             </div>
-          ) : (
-            <>
-              <p className="textoComentario">{comentario.contenido}</p>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button onClick={() => alResponder(comentario.id)} className="btnResponder">Responder</button>
-                {esPropio && (
-                  <button
-                    onClick={() => {
-                      setComentarioEditandoId(comentario.id);
-                      setComentarioEditandoTexto(comentario.contenido);
-                    }}
-                    className="btnResponder"
-                  ><Pencil size={14} /></button>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-        <button onClick={() => alBorrar(comentario.id)} className="btnBorrar"><Trash2 size={16} /></button>
+          </>
+        )}
+
+        {respondiendoA === comentario.id && (
+          <div className="fila-respuesta">
+            <input
+              type="text"
+              placeholder="Escribe tu respuesta..."
+              className="campo"
+              value={textoRespuesta}
+              onChange={(e) => setTextoRespuesta(e.target.value)}
+              autoFocus
+            />
+            <button
+              type="button"
+              onClick={() => enviarRespuesta(comentario.id)}
+              className="btn-enviar-comentario chico"
+              title="Enviar respuesta"
+            >
+              <Send size={15} />
+            </button>
+          </div>
+        )}
+
+        {hijos.map((hijo) => (
+          <ComentarioIndividual
+            key={hijo.id}
+            comentario={hijo}
+            todosLosComentarios={todosLosComentarios}
+            alResponder={alResponder}
+            alBorrar={alBorrar}
+            respondiendoA={respondiendoA}
+            enviarRespuesta={enviarRespuesta}
+            textoRespuesta={textoRespuesta}
+            setTextoRespuesta={setTextoRespuesta}
+            currentUserId={currentUserId}
+            comentarioEditandoId={comentarioEditandoId}
+            comentarioEditandoTexto={comentarioEditandoTexto}
+            setComentarioEditandoId={setComentarioEditandoId}
+            setComentarioEditandoTexto={setComentarioEditandoTexto}
+            actualizarComentario={actualizarComentario}
+            esMiPublicacion={esMiPublicacion}
+            alReportar={alReportar}
+          />
+        ))}
       </div>
 
-      {/* INPUT DE RESPUESTA SI ESTÁ ACTIVO */}
-      {respondiendoA === comentario.id && (
-        <div style={{ marginTop: '10px', display: 'flex', gap: '5px', marginLeft: '20px' }}>
-          <input
-            type="text"
-            placeholder="Escribe tu respuesta..."
-            className="inputComentario"
-            value={textoRespuesta}
-            onChange={(e) => setTextoRespuesta(e.target.value)}
-            autoFocus
-          />
-          <button
-            onClick={() => enviarRespuesta(comentario.id)}
-            className="btnEnviarComment" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            <Send size={16} />
-          </button>
-        </div>
+      {puedeBorrar && (
+        <button
+          type="button"
+          onClick={() => alBorrar(comentario.id)}
+          className="accion peligro"
+          title="Eliminar comentario"
+        >
+          <Trash2 size={15} />
+        </button>
       )}
-
-      {/* LA MAGIA: El componente se llama a sí mismo para renderizar a sus propios hijos */}
-      {hijos.map(hijo => (
-        <ComentarioIndividual
-          key={hijo.id}
-          comentario={hijo}
-          todosLosComentarios={todosLosComentarios}
-          alResponder={alResponder}
-          alBorrar={alBorrar}
-          respondiendoA={respondiendoA}
-          enviarRespuesta={enviarRespuesta}
-          textoRespuesta={textoRespuesta}
-          setTextoRespuesta={setTextoRespuesta}
-          currentUserId={currentUserId}
-          comentarioEditandoId={comentarioEditandoId}
-          comentarioEditandoTexto={comentarioEditandoTexto}
-          setComentarioEditandoId={setComentarioEditandoId}
-          setComentarioEditandoTexto={setComentarioEditandoTexto}
-          actualizarComentario={actualizarComentario}
-        />
-      ))}
     </div>
   );
 };
-
-// no olvides wilis la funcion anterior es para recursividad de comentarios
-
-const Dashboard = ({ alCerrarSesion }) => {
+const Dashboard = () => {
   const [usuario, setUsuario] = useState(null);
   const navigate = useNavigate();
 
   const [perfil, setPerfil] = useState({
     nombre: 'Cargando...',
-    bio: 'Artista ✨',
-    colorPrincipal: '#ee8f00',
-    colorSecundario: '#d17b18',
-    colorFondoWeb: '#0f0e0e',
+    bio: 'Artista',
+    colorPrincipal: '#f07e11',
+    colorFondoWeb: '#0b0b0d',
     colorLetraNombre: '#ffffff',
-    colorLetraBio: '#ffffff',
+    colorLetraBio: '#e6e6ec',
     avatarUrl: null,
-    imagenFondoUrl: null
+    imagenFondoUrl: null,
+    disponible: false,
+    area: '',
+    contacto: '',
+    esAdmin: false,
   });
 
   const [obras, setObras] = useState([]);
   const [nuevaObra, setNuevaObra] = useState({ titulo: '', descripcion: '', imagenUrl: '' });
   const [cargando, setCargando] = useState(true);
 
-  // ESTADOS PARA COMENTARIOS
+  // Comentarios
   const [proyectoSeleccionado, setProyectoSeleccionado] = useState(null);
   const [comentarios, setComentarios] = useState([]);
   const [nuevoComentario, setNuevoComentario] = useState('');
   const [enviandoComentario, setEnviandoComentario] = useState(false);
-  const [respondiendoA, setRespondiendoA] = useState(null); // Guarda el ID del comentario al que respondes
+  const [respondiendoA, setRespondiendoA] = useState(null);
   const [textoRespuesta, setTextoRespuesta] = useState('');
-
   const [comentarioEditandoId, setComentarioEditandoId] = useState(null);
   const [comentarioEditandoTexto, setComentarioEditandoTexto] = useState('');
 
+  // Notificaciones
   const [notificaciones, setNotificaciones] = useState([]);
   const [contadorNotificaciones, setContadorNotificaciones] = useState(0);
   const [notificacionesLeidasCount, setNotificacionesLeidasCount] = useState(0);
 
+  // Mis números (estadísticas del artista)
+  const [misNumeros, setMisNumeros] = useState({ vistas: 0, likes: 0, comentarios: 0, top: [] });
+
+  // UI
   const [editandoTitulo, setEditandoTitulo] = useState(false);
+  const [tituloEditando, setTituloEditando] = useState('');
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [mostrarModalSalir, setMostrarModalSalir] = useState(false);
+  const [alerta, setAlerta] = useState({
+    visible: false,
+    mensaje: '',
+    tipo: 'info',
+    titulo: '',
+    onConfirm: null,
+  });
+
+  // Reemplaza a window.alert con el modal del sistema.
+  const avisar = (mensaje, tipo = 'info', titulo) =>
+    setAlerta({ visible: true, mensaje, tipo, titulo, onConfirm: null });
+
+  // Reemplaza a window.confirm con el modal del sistema.
+  const pedirConfirmacion = (mensaje, onConfirm, titulo = 'Confirmación') =>
+    setAlerta({ visible: true, mensaje, tipo: 'confirm', titulo, onConfirm });
 
   useEffect(() => {
     const almacenadas = localStorage.getItem(STORAGE_KEY_NOTIF_LEIDAS);
@@ -176,24 +286,16 @@ const Dashboard = ({ alCerrarSesion }) => {
     localStorage.setItem(STORAGE_KEY_NOTIF_LEIDAS, String(notificacionesLeidasCount));
   }, [notificacionesLeidasCount]);
 
-  const actualizarContador = (totalNotificaciones) => {
-    const leidas = Number(localStorage.getItem(STORAGE_KEY_NOTIF_LEIDAS)) || 0;
-    const nuevos = Math.max(0, totalNotificaciones - leidas);
-    setContadorNotificaciones(nuevos);
-  };
-
   useEffect(() => {
     const leidas = Number(localStorage.getItem(STORAGE_KEY_NOTIF_LEIDAS)) || 0;
     const nuevos = Math.max(0, notificaciones.length - leidas);
     setContadorNotificaciones(nuevos);
   }, [notificaciones, notificacionesLeidasCount]);
 
-  const [tituloEditando, setTituloEditando] = useState('');
-
-  useEffect(() => {
-    document.body.style.backgroundColor = perfil.colorFondoWeb;
-    return () => { document.body.style.backgroundColor = null; };
-  }, [perfil.colorFondoWeb]);
+  const actualizarContador = (totalNotificaciones) => {
+    const leidas = Number(localStorage.getItem(STORAGE_KEY_NOTIF_LEIDAS)) || 0;
+    setContadorNotificaciones(Math.max(0, totalNotificaciones - leidas));
+  };
 
   useEffect(() => {
     const inicializar = async () => {
@@ -205,56 +307,75 @@ const Dashboard = ({ alCerrarSesion }) => {
       setCargando(false);
     };
     inicializar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    if (usuario) {
-      cargarObrasConStats();
-    }
+    if (usuario) cargarObrasConStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [usuario]);
+
+  useEffect(() => {
+    if (obras.length > 0) cargarNumeros();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [obras]);
+
+  const cargarNumeros = async () => {
+    const ids = obras.map((o) => o.id);
+    const { data: v } = await supabase.from('vistas').select('proyecto_id').in('proyecto_id', ids);
+    const porObra = {};
+    (v || []).forEach((r) => {
+      porObra[r.proyecto_id] = (porObra[r.proyecto_id] || 0) + 1;
+    });
+    const likes = obras.reduce((a, o) => a + Number(o.totalLikes || 0), 0);
+    const comentarios = obras.reduce((a, o) => a + Number(o.comentarios?.[0]?.count || 0), 0);
+    const top = [...obras]
+      .sort((a, b) => (porObra[b.id] || 0) - (porObra[a.id] || 0))
+      .slice(0, 3)
+      .map((o) => ({ id: o.id, titulo: o.titulo, vistas: porObra[o.id] || 0 }));
+    setMisNumeros({ vistas: (v || []).length, likes, comentarios, top });
+  };
+
+  const registrarVista = (proyectoId) => {
+    if (!proyectoId) return;
+    supabase.from('vistas').insert({ proyecto_id: proyectoId, usuario_id: usuario?.id || null })
+      .then(() => {}, () => {});
+  };
 
   const cargarObrasConStats = async () => {
     const { data, error } = await supabase
       .from('proyectos')
-      .select(`
-        *,
-        likes (usuario_id),
-        comentarios (count)
-      `)
+      .select(`*, likes (usuario_id), comentarios (count)`)
       .eq('usuario_id', usuario.id)
       .order('creado_el', { ascending: false });
 
-    if (error) console.error("Error cargando estadísticas:", error.message);
+    if (error) console.error('Error cargando estadísticas:', error.message);
     if (data) {
-      const procesadas = data.map(o => ({
+      const procesadas = data.map((o) => ({
         ...o,
         totalLikes: Number(o.likes?.length) || 0,
-        miLike: o.likes?.some(l => l.usuario_id === usuario.id) || false
+        miLike: o.likes?.some((l) => l.usuario_id === usuario.id) || false,
       }));
       setObras(procesadas);
     }
   };
 
   const formatearNotificacion = (comentario) => {
-    const obra = obras.find(o => o.id === comentario.proyecto_id);
+    const obra = obras.find((o) => o.id === comentario.proyecto_id);
     const nombreObra = obra ? obra.titulo : 'tu publicación';
     const nombreAutor = comentario.perfiles?.nombre_completo || 'Alguien';
     return {
       id: comentario.id,
       texto: `${nombreAutor} comentó en ${nombreObra}: "${comentario.contenido}"`,
       fecha: comentario.creado_el,
-      proyecto_id: comentario.proyecto_id
+      proyecto_id: comentario.proyecto_id,
     };
   };
 
   const cargarNotificaciones = async () => {
-    if (!usuario || obras.length === 0) {
-      return [];
-    }
+    if (!usuario || obras.length === 0) return [];
 
-    console.log('[Dashboard] cargarNotificaciones: usuario=', usuario?.id, 'obras=', obras.length);
-
-    const proyectosIds = obras.map(o => o.id);
+    const proyectosIds = obras.map((o) => o.id);
     const { data, error } = await supabase
       .from('comentarios')
       .select(`id, proyecto_id, usuario_id, creado_el, contenido, perfiles(nombre_completo)`)
@@ -264,38 +385,29 @@ const Dashboard = ({ alCerrarSesion }) => {
     if (!error && data) {
       const formateadas = data.map(formatearNotificacion);
       setNotificaciones(formateadas);
-
       actualizarContador(formateadas.length);
-
-      console.log('[Dashboard] cargarNotificaciones: totalDB=', formateadas.length);
-
       return formateadas;
     }
 
     return [];
   };
-  // EFECTO 1: Solo carga al iniciar o cuando cambian las obras
+
   useEffect(() => {
-    if (usuario && obras.length > 0) {
-      cargarNotificaciones();
-    }
+    if (usuario && obras.length > 0) cargarNotificaciones();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [obras, usuario]);
 
-  // EFECTO 2: El intervalo (Asegúrate de que use la versión fresca de la función)
   useEffect(() => {
     const intervalo = setInterval(() => {
       cargarNotificaciones();
     }, 20000);
     return () => clearInterval(intervalo);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [obras, usuario]);
 
-
   const manejarIrNotificaciones = async () => {
-    // Ideal: marcamos los comentarios como leídos y navegamos.
     const listaActual = await cargarNotificaciones();
     const total = Array.isArray(listaActual) ? listaActual.length : notificaciones.length;
-
-    console.log('[Dashboard] manejarIrNotificaciones', { total, notificacionesLeidasCount });
 
     setContadorNotificaciones(0);
     setNotificacionesLeidasCount(total);
@@ -305,18 +417,29 @@ const Dashboard = ({ alCerrarSesion }) => {
     navigate('/notificaciones', { state: { notificaciones: listaActual } });
   };
 
-
   const manejarLike = async (e, proyectoId, yaTieneLike) => {
     e.stopPropagation();
-    setObras(prev => prev.map(p => p.id === proyectoId ?
-      { ...p, miLike: !yaTieneLike, totalLikes: yaTieneLike ? Number(p.totalLikes) - 1 : Number(p.totalLikes) + 1 } : p
-    ));
-    if (yaTieneLike) await supabase.from('likes').delete().match({ usuario_id: usuario.id, proyecto_id: proyectoId });
-    else await supabase.from('likes').insert({ usuario_id: usuario.id, proyecto_id: proyectoId });
+    setObras((prev) =>
+      prev.map((p) =>
+        p.id === proyectoId
+          ? {
+              ...p,
+              miLike: !yaTieneLike,
+              totalLikes: yaTieneLike ? Number(p.totalLikes) - 1 : Number(p.totalLikes) + 1,
+            }
+          : p
+      )
+    );
+    if (yaTieneLike) {
+      await supabase.from('likes').delete().match({ usuario_id: usuario.id, proyecto_id: proyectoId });
+    } else {
+      await supabase.from('likes').insert({ usuario_id: usuario.id, proyecto_id: proyectoId });
+    }
   };
 
   const abrirProyecto = (proyecto) => {
     setProyectoSeleccionado(proyecto);
+    registrarVista(proyecto.id);
     setTituloEditando(proyecto.titulo || '');
     setEditandoTitulo(false);
     setComentarioEditandoId(null);
@@ -324,22 +447,14 @@ const Dashboard = ({ alCerrarSesion }) => {
     fetchComentarios(proyecto.id);
   };
 
-
-
-
-  // ...existing code...
-
   const fetchComentarios = async (proyectoId) => {
     const { data, error } = await supabase
       .from('comentarios')
-      .select(`
-      id, contenido, creado_el, usuario_id, parent_id,
-      perfiles ( id, nombre_completo, avatar_url )
-    `)
+      .select(`id, contenido, creado_el, usuario_id, parent_id, perfiles ( id, nombre_completo, avatar_url )`)
       .eq('proyecto_id', proyectoId)
       .order('creado_el', { ascending: true });
 
-    if (error) console.error("Error:", error.message);
+    if (error) console.error('Error:', error.message);
     else setComentarios(data || []);
   };
 
@@ -348,26 +463,22 @@ const Dashboard = ({ alCerrarSesion }) => {
     if (!nuevoComentario.trim() || !usuario || !proyectoSeleccionado?.id) return;
 
     if (nuevoComentario.trim().length > 100) {
-      alert('⚠️ El comentario es demasiado largo (máximo 100 caracteres).');
+      avisar('El comentario es demasiado largo (máximo 100 caracteres).', 'info');
       return;
     }
 
-    // Moderación de texto
     const resultadoModeracion = await moderador.validarTexto(nuevoComentario.trim());
     if (!resultadoModeracion.seguro) {
-      alert('❌ Comentario bloqueado: ' + (resultadoModeracion.razon || 'Contenido inapropiado.'));
-      console.log('Moderación detalle:', resultadoModeracion.detalle);
+      avisar(resultadoModeracion.razon || 'Contenido inapropiado.', 'error', 'Comentario bloqueado');
       return;
     }
 
     setEnviandoComentario(true);
-    const { error } = await supabase
-      .from('comentarios')
-      .insert({
-        proyecto_id: proyectoSeleccionado.id,
-        usuario_id: usuario.id,
-        contenido: nuevoComentario.trim()
-      });
+    const { error } = await supabase.from('comentarios').insert({
+      proyecto_id: proyectoSeleccionado.id,
+      usuario_id: usuario.id,
+      contenido: nuevoComentario.trim(),
+    });
 
     if (!error) {
       setNuevoComentario('');
@@ -379,129 +490,113 @@ const Dashboard = ({ alCerrarSesion }) => {
 
   const enviarRespuesta = async (padreId) => {
     if (!proyectoSeleccionado?.id) {
-      alert('Error: proyecto no seleccionado.');
+      avisar('Error: proyecto no seleccionado.', 'error');
       return;
     }
 
     if (!textoRespuesta.trim()) {
-      alert('Escribe tu respuesta antes de enviar.');
+      avisar('Escribe tu respuesta antes de enviar.', 'info');
       return;
     }
 
     if (textoRespuesta.trim().length > 100) {
-      alert('⚠️ El comentario es demasiado largo (máximo 100 caracteres).');
+      avisar('El comentario es demasiado largo (máximo 100 caracteres).', 'info');
       return;
     }
 
-    // Moderación de texto
     const resultadoModeracion = await moderador.validarTexto(textoRespuesta.trim());
     if (!resultadoModeracion.seguro) {
-      alert('❌ Respuesta bloqueada: Contiene contenido inapropiado.');
+      avisar('Contiene contenido inapropiado.', 'error', 'Respuesta bloqueada');
       return;
     }
 
-    const { data, error } = await supabase
-      .from('comentarios')
-      .insert([{
+    const { error } = await supabase.from('comentarios').insert([
+      {
         proyecto_id: proyectoSeleccionado.id,
         usuario_id: usuario.id,
         contenido: textoRespuesta.trim(),
-        parent_id: padreId
-      }])
-      .select('*, perfiles(*)');
+        parent_id: padreId,
+      },
+    ]);
 
     if (error) {
       console.error('Error de Supabase:', error.message);
-      alert('Error al responder: ' + error.message);
+      avisar('Error al responder: ' + error.message, 'error');
       return;
     }
 
     await fetchComentarios(proyectoSeleccionado.id);
-
     setTextoRespuesta('');
     setRespondiendoA(null);
   };
 
-    const actualizarComentario = async (comentarioId, contenido) => {
+  const actualizarComentario = async (comentarioId, contenido) => {
     if (!contenido.trim()) {
-      alert('El contenido no puede estar vacío.');
+      avisar('El contenido no puede estar vacío.', 'info');
       return;
     }
     if (contenido.trim().length > 100) {
-      alert('⚠️ El comentario es demasiado largo (máximo 100 caracteres).');
+      avisar('El comentario es demasiado largo (máximo 100 caracteres).', 'info');
       return;
     }
 
-    // --- CORRECCIÓN AQUÍ ---
-    // Usamos 'contenido', que es lo que recibe la función, no 'nuevoComentario'
     const textoParaValidar = contenido.trim();
     const resultadoModeracion = await moderador.validarTexto(textoParaValidar);
-    
+
     if (!resultadoModeracion.seguro) {
-      alert('❌ Comentario bloqueado: ' + (resultadoModeracion.razon || 'Contenido inapropiado.'));
-      console.log('Moderación detalle:', resultadoModeracion.detalle);
+      avisar(resultadoModeracion.razon || 'Contenido inapropiado.', 'error', 'Comentario bloqueado');
       return;
     }
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('comentarios')
-      .update({ contenido: textoParaValidar }) // Usamos el texto ya validado
+      .update({ contenido: textoParaValidar })
       .eq('id', comentarioId)
-      .eq('usuario_id', usuario?.id)
-      .select('*');
+      .eq('usuario_id', usuario?.id);
 
     if (error) {
-      alert('Error al actualizar comentario: ' + error.message);
-      console.error(error);
+      avisar('Error al actualizar comentario: ' + error.message, 'error');
       return;
     }
 
-    // ... (El resto de tu lógica de verificación y actualización de estado está bien)
-    
-    setComentarios(prev => prev.map(c => c.id === comentarioId ? { ...c, contenido: textoParaValidar } : c));
+    setComentarios((prev) =>
+      prev.map((c) => (c.id === comentarioId ? { ...c, contenido: textoParaValidar } : c))
+    );
     setComentarioEditandoId(null);
     setComentarioEditandoTexto('');
     if (proyectoSeleccionado?.id) await fetchComentarios(proyectoSeleccionado.id);
     await cargarObrasConStats();
-};
+  };
 
   const actualizarTituloProyecto = async () => {
     if (!proyectoSeleccionado) return;
-    
-    const tituloParaValidar = tituloEditando.trim(); // Guardamos el texto limpio
+
+    const tituloParaValidar = tituloEditando.trim();
 
     if (!tituloParaValidar) {
-      alert('El título no puede estar vacío.');
+      avisar('El título no puede estar vacío.', 'info');
       return;
     }
     if (tituloParaValidar.length > 20) {
-      alert('El título es demasiado largo (máximo 20 caracteres).');
+      avisar('El título es demasiado largo (máximo 20 caracteres).', 'info');
       return;
     }
 
-    // --- CORRECCIÓN AQUÍ ---
-    // Validamos 'tituloParaValidar', no 'nuevoComentario'
     const resultadoModeracion = await moderador.validarTexto(tituloParaValidar);
-    
     if (!resultadoModeracion.seguro) {
-      alert('❌ Título bloqueado: ' + (resultadoModeracion.razon || 'Contenido inapropiado.'));
-      console.log('Moderación detalle:', resultadoModeracion.detalle);
+      avisar(resultadoModeracion.razon || 'Contenido inapropiado.', 'error', 'Título bloqueado');
       return;
     }
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('proyectos')
-      .update({ titulo: tituloParaValidar }) // Usamos el texto ya moderado
-      .eq('id', proyectoSeleccionado.id)
-      .select('*');
+      .update({ titulo: tituloParaValidar })
+      .eq('id', proyectoSeleccionado.id);
 
     if (error) {
-      alert('Error al actualizar el título: ' + error.message);
-      console.error(error);
+      avisar('Error al actualizar el título: ' + error.message, 'error');
       return;
     }
-
-    // ... (El resto de tu lógica de verificación está perfecta)
 
     const { data: verifico, error: errorVerifico } = await supabase
       .from('proyectos')
@@ -509,24 +604,22 @@ const Dashboard = ({ alCerrarSesion }) => {
       .eq('id', proyectoSeleccionado.id)
       .single();
 
-    if (errorVerifico || (!verifico || verifico.titulo !== tituloParaValidar)) {
-      alert('No se pudo validar el título en la base de datos.');
+    if (errorVerifico || !verifico || verifico.titulo !== tituloParaValidar) {
+      avisar('No se pudo validar el título en la base de datos.', 'error');
       return;
     }
 
-    setProyectoSeleccionado(prev => ({ ...prev, titulo: tituloParaValidar }));
-    setObras(prev => prev.map(o => o.id === proyectoSeleccionado.id ? { ...o, titulo: tituloParaValidar } : o));
+    setProyectoSeleccionado((prev) => ({ ...prev, titulo: tituloParaValidar }));
+    setObras((prev) =>
+      prev.map((o) => (o.id === proyectoSeleccionado.id ? { ...o, titulo: tituloParaValidar } : o))
+    );
     setEditandoTitulo(false);
     await cargarObrasConStats();
-    alert('✅ Título actualizado.');
-};
+    avisar('Título actualizado.', 'exito');
+  };
 
   const cargarPerfil = async (userId) => {
-    const { data, error } = await supabase
-      .from('perfiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
+    const { data, error } = await supabase.from('perfiles').select('*').eq('id', userId).single();
 
     if (error) return;
 
@@ -534,67 +627,59 @@ const Dashboard = ({ alCerrarSesion }) => {
       setPerfil({
         nombre: data.nombre_completo || '',
         bio: data.biografia || '',
-        colorPrincipal: data.color_principal || '#4a90e2',
-        colorSecundario: data.color_secundario || '#357abd',
-        colorFondoWeb: data.color_fondo_web || '#ffffff',
+        colorPrincipal: data.color_principal || '#f07e11',
+        colorFondoWeb: data.color_fondo_web || '#0b0b0d',
         colorLetraNombre: data.color_letra_nombre || '#ffffff',
-        colorLetraBio: data.color_letra_bio || '#ffffff',
+        colorLetraBio: data.color_letra_bio || '#e6e6ec',
         avatarUrl: data.avatar_url,
-        imagenFondoUrl: data.imagen_fondo_url
+        imagenFondoUrl: data.imagen_fondo_url,
+        disponible: !!data.disponible_trabajo,
+        area: data.area_trabajo || '',
+        contacto: data.contacto_trabajo || '',
+        esAdmin: data.tipo_cuenta === 'admin',
       });
     }
   };
 
-  const borrarComentario = async (comentarioId) => {
-    const confirmar = window.confirm("¿Estás seguro de que quieres eliminar este comentario?");
-    if (!confirmar) return;
+  const borrarComentario = (comentarioId) => {
+    pedirConfirmacion('¿Seguro que quieres eliminar este comentario?', async () => {
+      const { error } = await supabase.from('comentarios').delete().eq('id', comentarioId);
 
-    try {
-      const { error } = await supabase
-        .from('comentarios')
-        .delete()
-        .eq('id', comentarioId);
+      if (error) {
+        avisar('Error al borrar: ' + error.message, 'error');
+        return;
+      }
 
-      if (error) throw error;
-
-      // Actualizamos el estado local para que el comentario desaparezca visualmente
-      setComentarios(prev => prev.filter(c => c.id !== comentarioId));
-
-      // Opcional: Recargar estadísticas para actualizar el contador de comentarios en la tarjeta
+      setComentarios((prev) => prev.filter((c) => c.id !== comentarioId));
       cargarObrasConStats();
-
-    } catch (err) {
-      alert("❌ Error al borrar: " + err.message);
-    }
+    });
   };
 
-
-  // BOTÓN GUARDAR: Ahora solo para Textos y Colores
-
   const guardarCambiosPerfil = async () => {
-    // 1. Ejecutamos la validación (Nombre máx 25, Bio máx 150)
     const resultado = validarPerfil(perfil);
 
     if (!resultado.valido) {
-      const primerError = Object.values(resultado.errores)[0];
-      alert("⚠️ " + primerError);
+      avisar(Object.values(resultado.errores)[0], 'info');
       return;
     }
 
-    // 1.5. Validación adicional con moderador para evitar nombres/descripciones explícitas
     const moderacionNombre = await moderador.validarTexto(perfil.nombre || '');
     if (!moderacionNombre.seguro) {
-      alert('❌ Nombre bloqueado: contenido inapropiado detectado.');
+      avisar('Nombre bloqueado: contenido inapropiado detectado.', 'error');
       return;
     }
 
     const moderacionBio = await moderador.validarTexto(perfil.bio || '');
     if (!moderacionBio.seguro) {
-      alert('❌ Biografía bloqueada: contenido inapropiado detectado.');
+      avisar('Biografía bloqueada: contenido inapropiado detectado.', 'error');
       return;
     }
 
-    if (!usuario) return alert("Espera a que cargue tu sesión...");
+    if (!usuario) {
+      avisar('Espera a que cargue tu sesión...', 'info');
+      return;
+    }
+
     setCargando(true);
 
     const datosParaDB = {
@@ -602,11 +687,14 @@ const Dashboard = ({ alCerrarSesion }) => {
       nombre_completo: perfil.nombre,
       biografia: perfil.bio,
       color_principal: perfil.colorPrincipal,
-      color_secundario: perfil.colorSecundario,
       color_fondo_web: perfil.colorFondoWeb,
-      // Asegúrate de que estas propiedades existan en tu estado 'perfil'
       color_letra_nombre: perfil.colorLetraNombre,
-      color_letra_bio: perfil.colorLetraBio
+      color_letra_bio: perfil.colorLetraBio,
+      avatar_url: perfil.avatarUrl,
+      imagen_fondo_url: perfil.imagenFondoUrl,
+      disponible_trabajo: perfil.disponible,
+      area_trabajo: perfil.area.trim() || null,
+      contacto_trabajo: perfil.contacto.trim() || null,
     };
 
     const { error: errorPerfil } = await supabase
@@ -616,12 +704,12 @@ const Dashboard = ({ alCerrarSesion }) => {
     if (errorPerfil) {
       console.error('Error guardando perfil:', errorPerfil);
       if (errorPerfil.code === '23505') {
-        alert('❌ Este nombre de usuario ya está en uso. Por favor, elige otro.');
+        avisar('Este nombre de usuario ya está en uso. Elige otro.', 'error');
       } else {
-        alert('❌ Error guardando perfil: ' + errorPerfil.message);
+        avisar('Error guardando perfil: ' + errorPerfil.message, 'error');
       }
     } else {
-      alert('✅ ¡Información actualizada!');
+      avisar('¡Información actualizada!', 'exito');
     }
 
     setCargando(false);
@@ -631,23 +719,19 @@ const Dashboard = ({ alCerrarSesion }) => {
     const archivo = event.target.files[0];
     if (!archivo) return;
 
-
     const tiposPermitidos = ['image', 'video', 'audio'];
-    // Verificamos si el tipo de archivo (MIME type) empieza con alguno de los permitidos
-    const esValido = tiposPermitidos.some(tipo => archivo.type.startsWith(tipo));
+    const esValido = tiposPermitidos.some((tipo) => archivo.type.startsWith(tipo));
 
     if (!esValido) {
-      alert("❌ Archivo no permitido. Solo puedes subir Imágenes, Videos o Audios.");
-      event.target.value = ""; // Limpia el input para que no quede el archivo malo ahí
-      return; // Detiene todo
+      avisar('Archivo no permitido. Solo puedes subir imágenes, videos o audios.', 'error');
+      event.target.value = '';
+      return;
     }
-    // VALIDACIÓN DE TAMAÑO: 50MB (50 * 1024 * 1024 bytes)
-    const limiteMB = 50;
-    const limiteBytes = limiteMB * 1024 * 1024;
 
-    if (archivo.size > limiteBytes) {
-      alert(`⚠️ El archivo es demasiado grande. El límite son ${limiteMB}MB.`);
-      event.target.value = ""; // Limpia el input para que no intente subirlo
+    const limiteMB = 50;
+    if (archivo.size > limiteMB * 1024 * 1024) {
+      avisar(`El archivo es demasiado grande. El límite son ${limiteMB} MB.`, 'error');
+      event.target.value = '';
       return;
     }
 
@@ -655,170 +739,139 @@ const Dashboard = ({ alCerrarSesion }) => {
     const nombreArchivo = `${Date.now()}-${archivo.name}`;
 
     try {
-      // Subida al Bucket 'Proyectos'
-      const { error: uploadError } = await supabase.storage
-        .from('Proyectos')
-        .upload(nombreArchivo, archivo);
-
+      const { error: uploadError } = await supabase.storage.from('Proyectos').upload(nombreArchivo, archivo);
       if (uploadError) throw uploadError;
 
-      // Obtener la URL pública
-      const { data: { publicUrl } } = supabase.storage
-        .from('Proyectos')
-        .getPublicUrl(nombreArchivo);
+      const { data: { publicUrl } } = supabase.storage.from('Proyectos').getPublicUrl(nombreArchivo);
 
-      // Moderación de media (solo para imágenes y videos)
       if (archivo.type.startsWith('image') || archivo.type.startsWith('video')) {
         const resultadoModeracion = await moderador.validarMedia(publicUrl, archivo.type);
         if (!resultadoModeracion.seguro) {
-          alert('❌ Archivo bloqueado: Contiene contenido inapropiado.');
-          // Eliminar el archivo subido
+          avisar('Archivo bloqueado: contiene contenido inapropiado.', 'error');
           await supabase.storage.from('Proyectos').remove([nombreArchivo]);
-          setCargando(false);
-          event.target.value = "";
+          event.target.value = '';
           return;
         }
       }
 
-      // Guardamos la URL en el estado temporal para que el botón de publicar la use
-      setNuevaObra(prev => ({ ...prev, imagenUrl: publicUrl }));
-
-      alert("✅ Archivo cargado correctamente. Ahora puedes ponerle un título y publicar.");
-
+      setNuevaObra((prev) => ({ ...prev, imagenUrl: publicUrl }));
+      avisar('Archivo cargado. Ahora ponle un título y publica.', 'exito');
     } catch (err) {
-      alert("❌ Error al subir el archivo: " + err.message);
+      avisar('Error al subir el archivo: ' + err.message, 'error');
       console.error(err);
     } finally {
       setCargando(false);
+      event.target.value = '';
     }
   };
 
   const publicarProyecto = async () => {
-    // 1. Usamos la validación que exportamos (Título máx 20, etc.)
     const check = validarProyecto(nuevaObra);
 
     if (!check.valido) {
-      alert("⚠️ " + Object.values(check.errores)[0]);
-      return; // Detiene la ejecución si hay error
+      avisar(Object.values(check.errores)[0], 'info');
+      return;
     }
 
-    // 1.5. Validación de texto usando moderador para evitar contenido explicito
     const moderacionTitulo = await moderador.validarTexto(nuevaObra.titulo || '');
     if (!moderacionTitulo.seguro) {
-      alert('❌ Título bloqueado: contenido inapropiado detectado.');
+      avisar('Título bloqueado: contenido inapropiado detectado.', 'error');
       return;
     }
 
     const moderacionDescripcion = await moderador.validarTexto(nuevaObra.descripcion || '');
     if (!moderacionDescripcion.seguro) {
-      alert('❌ Descripción bloqueada: contenido inapropiado detectado.');
+      avisar('Descripción bloqueada: contenido inapropiado detectado.', 'error');
       return;
     }
 
-    // 1.6. Validación adicional de media para doble verificación
     const resultadoModeracionMedia = await moderador.validarMedia(nuevaObra.imagenUrl, '');
     if (!resultadoModeracionMedia.seguro) {
-      alert('❌ Proyecto bloqueado: el archivo contiene contenido inapropiado.');
+      avisar('Proyecto bloqueado: el archivo contiene contenido inapropiado.', 'error');
       return;
     }
 
     setCargando(true);
 
-    // 2. Lógica para detectar el tipo de archivo automáticamente
     let tipoDetectado = 'imagen';
     const urlLower = nuevaObra.imagenUrl.toLowerCase();
 
-    if (urlLower.match(/\.(mp4|webm|ogg|mov)$/i)) {
-      tipoDetectado = 'video';
-    } else if (urlLower.match(/\.(mp3|wav|flac|aac)$/i)) {
-      tipoDetectado = 'audio';
-    }
+    if (urlLower.match(/\.(mp4|webm|ogg|mov)$/i)) tipoDetectado = 'video';
+    else if (urlLower.match(/\.(mp3|wav|flac|aac)$/i)) tipoDetectado = 'audio';
 
     try {
-      // 3. Inserción en Supabase
       const { error } = await supabase.from('proyectos').insert([
         {
           usuario_id: usuario.id,
           titulo: nuevaObra.titulo,
           archivo_url: nuevaObra.imagenUrl,
-          tipo_archivo: tipoDetectado
-        }
+          tipo_archivo: tipoDetectado,
+        },
       ]);
 
       if (error) throw error;
 
-      alert(`🚀 ¡Proyecto (${tipoDetectado}) publicado con éxito!`);
-
-      // 4. Limpiar el formulario y recargar la lista
+      avisar(`¡Proyecto (${tipoDetectado}) publicado con éxito!`, 'exito');
       setNuevaObra({ titulo: '', descripcion: '', imagenUrl: '' });
       cargarObrasConStats();
-
     } catch (err) {
-      alert("❌ Error al publicar: " + err.message);
+      avisar('Error al publicar: ' + err.message, 'error');
     } finally {
       setCargando(false);
     }
   };
 
-  const borrarProyecto = async (id) => {
-    if (!window.confirm("¿Eliminar proyecto?")) return;
-    const { error } = await supabase.from('proyectos').delete().eq('id', id);
-    if (error) alert("Error: " + error.message);
-    else setObras(obras.filter(o => o.id !== id));
+  const borrarProyecto = (id) => {
+    pedirConfirmacion('¿Eliminar este proyecto? Esta acción no se puede deshacer.', async () => {
+      const { error } = await supabase.from('proyectos').delete().eq('id', id);
+      if (error) avisar('Error: ' + error.message, 'error');
+      else setObras((prev) => prev.filter((o) => o.id !== id));
+    });
   };
 
   const subirImagen = async (event, nombreBucket, columnaDB, campoEstado) => {
     const archivo = event.target.files[0];
     if (!archivo) return;
-    // Validar que sea imagen
+
     if (!archivo.type.startsWith('image/')) {
-      alert('Solo se permiten archivos de imagen (jpg, png, gif, etc).');
-      event.target.value = "";
+      avisar('Solo se permiten archivos de imagen (jpg, png, gif, etc.).', 'error');
+      event.target.value = '';
       return;
     }
+
     setCargando(true);
     const nombreArchivo = `${Date.now()}-${archivo.name}`;
     const { error: uploadError } = await supabase.storage.from(nombreBucket).upload(nombreArchivo, archivo);
 
     if (uploadError) {
-      alert("Error: " + uploadError.message);
+      avisar('Error: ' + uploadError.message, 'error');
       setCargando(false);
       return;
     }
 
     const { data: { publicUrl } } = supabase.storage.from(nombreBucket).getPublicUrl(nombreArchivo);
 
-    // Moderación de imagen (igual que en proyectos)
     try {
       const resultadoModeracion = await moderador.validarMedia(publicUrl);
       if (!resultadoModeracion.seguro) {
-        alert('❌ Imagen bloqueada: contiene contenido inapropiado.');
-        // Eliminar la imagen subida
+        avisar('Imagen bloqueada: contiene contenido inapropiado.', 'error');
         await supabase.storage.from(nombreBucket).remove([nombreArchivo]);
-        setCargando(false);
-        event.target.value = "";
+        event.target.value = '';
         return;
       }
     } catch (err) {
-      alert('Error al moderar la imagen. Intenta de nuevo.');
-      // Eliminar la imagen subida por seguridad
+      avisar('Error al moderar la imagen. Intenta de nuevo.', 'error');
       await supabase.storage.from(nombreBucket).remove([nombreArchivo]);
-      setCargando(false);
-      event.target.value = "";
+      event.target.value = '';
       return;
+    } finally {
+      setCargando(false);
     }
 
-    const { error: dbError } = await supabase
-      .from('perfiles')
-      .update({ [columnaDB]: publicUrl })
-      .eq('id', usuario.id);
-
-    if (dbError) alert("Error: " + dbError.message);
-    else setPerfil(prev => ({ ...prev, [campoEstado]: publicUrl }));
-    setCargando(false);
+    // Solo vista previa: se guarda en la base de datos al pulsar "Guardar cambios".
+    setPerfil((prev) => ({ ...prev, [campoEstado]: publicUrl }));
+    avisar('Vista previa lista. Pulsa "Guardar cambios" para aplicarla.', 'exito');
   };
-
-
 
   const manejarCerrarSesion = async () => {
     await supabase.auth.signOut();
@@ -827,284 +880,586 @@ const Dashboard = ({ alCerrarSesion }) => {
 
   const obtenerFondoHeader = () => {
     if (perfil.imagenFondoUrl) return `url(${perfil.imagenFondoUrl}) center/cover no-repeat`;
-    return perfil.colorPrincipal;
+    return perfil.colorFondoWeb || perfil.colorPrincipal;
   };
 
-  if (cargando && !usuario) return <div style={{ color: 'white', padding: '50px', textAlign: 'center' }}>Cargando...</div>;
+  // Tema activo según los 4 colores (null = combinación personalizada).
+  const temaActivoId = detectarTemaPerfil(perfil);
 
-  return (
-    <section className="dashboard">
-      <div className="navBar">
-        <div style={{ position: 'relative' }}>
+  // Cabecera clara (ej. tema Arena sin banner): píldora clara para la bio.
+  const cabeceraClara = !perfil.imagenFondoUrl && esFondoClaro(perfil.colorFondoWeb);
+
+  // Aplica un tema predefinido (contraste garantizado) a la vista previa.
+  const aplicarTema = (temaId) => {
+    const tema = buscarTemaPerfil(temaId);
+    if (!tema) return;
+    setPerfil((prev) => ({
+      ...prev,
+      colorPrincipal: tema.colorPrincipal,
+      colorFondoWeb: tema.colorFondoWeb,
+      colorLetraNombre: tema.colorLetraNombre,
+      colorLetraBio: tema.colorLetraBio,
+    }));
+  };
+
+  const quitarBanner = () =>
+    setPerfil((prev) => ({ ...prev, imagenFondoUrl: null }));
+
+  // Vuelve al tema de marca sin tocar nombre, bio ni avatar.
+  const restablecerTema = () => {
+    const tema = buscarTemaPerfil(TEMA_POR_DEFECTO_ID);
+    setPerfil((prev) => ({
+      ...prev,
+      colorPrincipal: tema.colorPrincipal,
+      colorFondoWeb: tema.colorFondoWeb,
+      colorLetraNombre: tema.colorLetraNombre,
+      colorLetraBio: tema.colorLetraBio,
+      imagenFondoUrl: null,
+    }));
+  };
+
+  if (cargando && !usuario) return <div className="dash-cargando">Cargando tu espacio...</div>;
+return (
+    <section className="dash-pantalla">
+      {/* ---------- Barra superior ---------- */}
+      <div className="dash-barra">
+        <div className="pos-relativa">
           <button
-            className="btnHamburguesa"
+            type="button"
+            className="btn btn-secundario"
             onClick={() => setMenuAbierto(!menuAbierto)}
+            aria-expanded={menuAbierto}
           >
-            <div key={menuAbierto ? 'open' : 'closed'} className="icon-spin-animate" style={{ display: 'flex', alignItems: 'center' }}>
+            <span key={menuAbierto ? 'abierto' : 'cerrado'} className="icono-girar">
               {menuAbierto ? <X size={18} /> : <Menu size={18} />}
-            </div>
+            </span>
             Menú
           </button>
 
           {menuAbierto && (
-            <div className="menuDesplegable menu-dropdown-animate">
+            <div className="dash-menu menu-caer">
               <button
-                onClick={() => { setMenuAbierto(false); navigate('/galeria'); }}
-                className="menuItem" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                type="button"
+                className="dash-menu-item"
+                onClick={() => {
+                  setMenuAbierto(false);
+                  navigate('/galeria');
+                }}
               >
                 <ImageIcon size={18} /> Galería
               </button>
+
               <button
-                onClick={() => { setMenuAbierto(false); navigate('/notificaciones'); }}
-                className="menuItem" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                type="button"
+                className="dash-menu-item"
+                onClick={() => {
+                  setMenuAbierto(false);
+                  navigate('/retos');
+                }}
+              >
+                <Trophy size={18} /> Retos
+              </button>
+
+              {perfil.esAdmin && (
+                <button
+                  type="button"
+                  className="dash-menu-item"
+                  onClick={() => {
+                    setMenuAbierto(false);
+                    navigate('/admin');
+                  }}
+                >
+                  <ShieldAlert size={18} /> Administración
+                </button>
+              )}
+
+              <button
+                type="button"
+                className="dash-menu-item"
+                onClick={() => {
+                  setMenuAbierto(false);
+                  manejarIrNotificaciones();
+                }}
               >
                 <Activity size={18} /> Ver actividad
+                {contadorNotificaciones > 0 && (
+                  <span className="badge marca ml-auto">
+                    {contadorNotificaciones}
+                  </span>
+                )}
               </button>
-              <div style={{ borderTop: '1px solid #eee', margin: '5px 0' }}></div>
+
+              <hr className="dash-menu-sep" />
+
               <button
-                className="menuItem" style={{ color: '#e74c3c', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}
-                onClick={() => { setMenuAbierto(false); setMostrarModalSalir(true); }}
+                type="button"
+                className="dash-menu-item peligro"
+                onClick={() => {
+                  setMenuAbierto(false);
+                  setMostrarModalSalir(true);
+                }}
               >
-                <LogOut size={18} /> Cerrar Sesión
+                <LogOut size={18} /> Cerrar sesión
               </button>
             </div>
           )}
         </div>
+
+        <button type="button" className="btn btn-ghost" onClick={() => navigate('/galeria')}>
+          <ImageIcon size={18} /> Explorar galería
+        </button>
       </div>
 
-      <div className="perfilHeader" style={{ background: obtenerFondoHeader() }}>
-        <img className="fotoPerfil" src={perfil.avatarUrl || "https://via.placeholder.com/120?text=👤"} alt="Perfil" />
-        <h1 className="nombreUsuario" style={{ color: perfil.colorLetraNombre }}>{perfil.nombre}</h1>
-        <p className="bioUsuario" style={{ color: perfil.colorLetraBio }}>{perfil.bio}</p>
+      {/* ---------- Cabecera personalizada ---------- */}
+      <div className="dash-cabecera" style={{ background: obtenerFondoHeader() }}>
+        {perfil.avatarUrl ? (
+          <img
+            className="dash-avatar"
+            src={perfil.avatarUrl}
+            alt="Foto de perfil"
+            style={{ borderColor: perfil.colorPrincipal }}
+          />
+        ) : (
+          <div
+            className="dash-avatar"
+            style={{
+              borderColor: perfil.colorPrincipal,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <User size={54} color="var(--texto-3)" />
+          </div>
+        )}
 
-        <div className="configPerfil">
-          <h4 style={{ color: '#333', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}><Settings size={20} /> Personalizar mi espacio</h4>
-          <div className="configRow">
-            <div className="configGrupo">
-              <label className="label">Foto Perfil (Auto):</label>
-              <label htmlFor="upload-avatar" className="btnSubirArchivo">
-                <ImageIcon size={14} /> Elegir Foto
-              </label>
-              <input id="upload-avatar" type="file" accept="image/*" onChange={(e) => subirImagen(e, 'Avatares', 'avatar_url', 'avatarUrl')} style={{ display: 'none' }} />
-            </div>
+        <h1 className={`dash-nombre${cabeceraClara ? ' claro' : ''}`} style={{ color: perfil.colorLetraNombre }}>
+          {perfil.nombre}
+        </h1>
+        <p className={`dash-bio${cabeceraClara ? ' clara' : ''}`} style={{ color: perfil.colorLetraBio }}>
+          {perfil.bio}
+        </p>
+      </div>
+
+      {/* ---------- Personalización ---------- */}
+      <div className="dash-panel">
+        <h4 className="dash-panel-titulo">
+          <Settings size={20} /> Personalizar mi espacio
+        </h4>
+
+        <div className="dash-fila">
+          <div className="dash-grupo">
+            <span className="dash-etiqueta">Foto de perfil</span>
+            <label htmlFor="upload-avatar" className="btn btn-secundario cursor-pointer">
+              <ImagePlus size={16} /> Elegir foto
+            </label>
+            <input
+              id="upload-avatar"
+              type="file"
+              accept="image/*"
+              onChange={(e) => subirImagen(e, 'Avatares', 'avatar_url', 'avatarUrl')}
+              className="oculto"
+            />
+          </div>
+
+          <div className="dash-grupo">
+            <span className="dash-etiqueta">Nombre de usuario</span>
             <input
               type="text"
-              maxLength={25} // <--- NO DEJA ESCRIBIR MÁS DE 25
-              className="inputText"
+              maxLength={25}
+              className="campo"
               placeholder="Nombre de usuario"
               value={perfil.nombre}
               onChange={(e) => setPerfil({ ...perfil, nombre: e.target.value })}
             />
+          </div>
+
+          <div className="dash-grupo">
+            <span className="dash-etiqueta">Biografía</span>
             <textarea
-              maxLength={150} // <--- NO DEJA ESCRIBIR MÁS DE 150
-              className="inputText" style={{ height: '60px', resize: 'none' }}
+              maxLength={150}
+              className="campo"
               placeholder="Describe tu perfil..."
               value={perfil.bio}
               onChange={(e) => setPerfil({ ...perfil, bio: e.target.value })}
             />
           </div>
+        </div>
 
-          <div className="configRow">
-            <div className="configGrupoColor"><label className="label">Fondo Web:</label><input type="color" value={perfil.colorFondoWeb} className="inputColor" onChange={(e) => setPerfil({ ...perfil, colorFondoWeb: e.target.value })} /></div>
-            <div className="configGrupoColor"><label className="label">Cuadro:</label><input type="color" value={perfil.colorSecundario} className="inputColor" onChange={(e) => setPerfil({ ...perfil, colorSecundario: e.target.value })} /></div>
-            <div className="configGrupoColor"><label className="label">Color texto nombre:</label><input type="color" value={perfil.colorLetraNombre} className="inputColor" onChange={(e) => setPerfil({ ...perfil, colorLetraNombre: e.target.value })} /></div>
-            <div className="configGrupoColor"><label className="label">Color texto bio:</label><input type="color" value={perfil.colorLetraBio} className="inputColor" onChange={(e) => setPerfil({ ...perfil, colorLetraBio: e.target.value })} /></div>
-            <div className="configGrupo">
-              <label className="label">Fondo (Auto):</label>
-              <label htmlFor="upload-fondo" className="btnSubirArchivo">
-                <ImageIcon size={14} /> Elegir Fondo
-              </label>
-              <input id="upload-fondo" type="file" onChange={(e) => subirImagen(e, 'Fondos', 'imagen_fondo_url', 'imagenFondoUrl')} style={{ display: 'none' }} />
+        <div className="dash-fila">
+          <div className="dash-grupo dash-grupo-ancho">
+            <span className="dash-etiqueta">Tema de mi cabecera</span>
+            <div className="dash-temas">
+              {TEMAS_PERFIL.map((t) => {
+                const activo = temaActivoId === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    className={`dash-tema ${activo ? 'seleccionado' : ''}`}
+                    onClick={() => aplicarTema(t.id)}
+                    title={t.nombre}
+                    aria-pressed={activo}
+                  >
+                    <span className="dash-tema-muestras" aria-hidden="true">
+                      <span style={{ background: t.colorFondoWeb }} />
+                      <span style={{ background: t.colorPrincipal }} />
+                    </span>
+                    {t.nombre}
+                  </button>
+                );
+              })}
             </div>
-
-            <div className="configGrupo">
-              <label className="label">Plantilla (Auto):</label>
-              <input
-                type="number"
-                min="1"
-                max="50"
-                className="inputText"
-                placeholder="Ej: 1"
-                onChange={async (e) => {
-                  const num = parseInt(e.target.value);
-                  if (num >= 1 && num <= 50) {
-                    const url = `/imagenes/plantillas/textura${num}.png`;
-                    setPerfil({ ...perfil, imagenFondoUrl: url });
-                    // Guardado automático de plantilla
-                    await supabase.from('perfiles').update({ imagen_fondo_url: url }).eq('id', usuario.id);
-                  } else if (num) {
-                    alert('Plantilla no disponible. Solo hay plantillas del 1 al 50.');
-                    e.target.value = ''; // Limpiar el campo
-                  }
-                }}
-              />
-            </div>
-
-            <button className="btnGuardar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={guardarCambiosPerfil}><Save size={16} />Guardar cambios</button>
+            {!temaActivoId && (
+              <span className="badge">Acento personalizado</span>
+            )}
           </div>
+
+          <div className="dash-grupo-color">
+            <span className="dash-etiqueta">Marco</span>
+            <input
+              type="color"
+              value={perfil.colorPrincipal}
+              className="dash-color"
+              title="Ajusta solo el color de acento"
+              onChange={(e) => setPerfil({ ...perfil, colorPrincipal: e.target.value })}
+            />
+          </div>
+
+          <div className="dash-grupo">
+            <span className="dash-etiqueta">Banner</span>
+            <div className="fila">
+              <label htmlFor="upload-fondo" className="btn btn-secundario cursor-pointer">
+                <ImagePlus size={16} /> Elegir fondo
+              </label>
+              {perfil.imagenFondoUrl && (
+                <button type="button" className="btn btn-ghost" onClick={quitarBanner}>
+                  Quitar
+                </button>
+              )}
+            </div>
+            <input
+              id="upload-fondo"
+              type="file"
+              accept="image/*"
+              onChange={(e) => subirImagen(e, 'Fondos', 'imagen_fondo_url', 'imagenFondoUrl')}
+              className="oculto"
+            />
+          </div>
+
+          <div className="dash-grupo dash-grupo-ancho">
+            <span className="dash-etiqueta">Plantillas (elige una para la vista previa)</span>
+            <div className="dash-plantillas">
+              {PLANTILLAS_FONDO.map((url) => (
+                <button
+                  key={url}
+                  type="button"
+                  className={`dash-plantilla ${perfil.imagenFondoUrl === url ? 'seleccionado' : ''}`}
+                  onClick={() => setPerfil((prev) => ({ ...prev, imagenFondoUrl: url }))}
+                  title={url.split('/').pop()}
+                >
+                  <img src={url} alt="" loading="lazy" />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <button type="button" className="btn btn-exito" onClick={guardarCambiosPerfil}>
+            <Save size={16} /> Guardar cambios
+          </button>
+          <button type="button" className="btn btn-ghost" onClick={restablecerTema} title="Volver al tema Pocketwork sin banner">
+            <RotateCcw size={16} /> Restablecer tema
+          </button>
         </div>
       </div>
 
-      <div className="subirObra" style={{ background: perfil.colorSecundario }}>
-        <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Palette size={24} /> Publicar Nuevo Proyecto</h2>
-        <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+      {/* ---------- Perfil laboral ---------- */}
+      <div className="dash-panel">
+        <h4 className="dash-panel-titulo">
+          <Settings size={20} /> Perfil laboral
+        </h4>
+        <div className="dash-fila">
+          <label className="fila cursor-pointer">
+            <input
+              type="checkbox"
+              checked={perfil.disponible}
+              onChange={(e) => setPerfil({ ...perfil, disponible: e.target.checked })}
+            />
+            <span className="dash-etiqueta">Disponible para trabajar</span>
+          </label>
+          <div className="dash-grupo">
+            <span className="dash-etiqueta">Área (ej. Diseño, Foto, Video)</span>
+            <input
+              type="text"
+              maxLength={40}
+              className="campo"
+              placeholder="¿En qué trabajas?"
+              value={perfil.area}
+              onChange={(e) => setPerfil({ ...perfil, area: e.target.value })}
+            />
+          </div>
+          <div className="dash-grupo">
+            <span className="dash-etiqueta">Contacto (correo o red)</span>
+            <input
+              type="text"
+              maxLength={60}
+              className="campo"
+              placeholder="¿Cómo te contactan?"
+              value={perfil.contacto}
+              onChange={(e) => setPerfil({ ...perfil, contacto: e.target.value })}
+            />
+          </div>
+        </div>
+        <p className="texto-3 texto-auxiliar">Se muestra en tu perfil público. Recuerda pulsar "Guardar cambios".</p>
+      </div>
+
+      {/* ---------- Mis números ---------- */}
+      <div className="dash-panel">
+        <h4 className="dash-panel-titulo">
+          <Eye size={20} /> Mis números
+        </h4>
+        <div className="fila">
+          <span className="dash-stat"><Eye size={14} /> {misNumeros.vistas} vistas</span>
+          <span className="dash-stat"><Heart size={14} /> {misNumeros.likes} likes</span>
+          <span className="dash-stat"><MessageCircle size={14} /> {misNumeros.comentarios} comentarios</span>
+        </div>
+        {misNumeros.top.length > 0 && (
+          <div className="columna mt-3">
+            {misNumeros.top.map((t) => (
+              <div key={t.id} className="fila-entre">
+                <span className="crecer">{t.titulo}</span>
+                <span className="badge">{t.vistas} vistas</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ---------- Publicar proyecto ---------- */}
+      <div className="dash-publicar">
+        <h2 className="dash-publicar-titulo">
+          <Palette size={22} /> Publicar nuevo proyecto
+        </h2>
+
+        <div className="dash-publicar-fila">
           <input
             type="text"
             maxLength={20}
             placeholder="Título (máx 20)"
-            className="inputText"
+            className="campo"
             value={nuevaObra.titulo}
             onChange={(e) => setNuevaObra({ ...nuevaObra, titulo: e.target.value })}
           />
 
-          {/* CONECTAMOS LA FUNCIÓN AQUÍ */}
-          <label htmlFor="upload-proyecto" className="btnSubirArchivo">
-            <ImageIcon size={18} /> Subir foto
+          <label htmlFor="upload-proyecto" className="btn btn-secundario cursor-pointer">
+            <ImageIcon size={18} /> Subir archivo
           </label>
           <input
             id="upload-proyecto"
             type="file"
             accept="image/*,video/*,audio/*"
             onChange={prepararArchivoProyecto}
-            style={{ display: 'none' }}
+            className="oculto"
           />
 
-          <button
-            className="btnGuardar"
-            onClick={publicarProyecto}
-          >
+          <button type="button" className="btn btn-primario" onClick={publicarProyecto}>
             <Send size={18} /> Publicar
           </button>
         </div>
+
+        {nuevaObra.imagenUrl && (
+          <p className="texto-3 texto-auxiliar">
+            Archivo listo para publicar.
+          </p>
+        )}
       </div>
 
-      <h2 className="tituloSeccion">Mi Portafolio</h2>
-      <div className="gridObras">
-        {obras.length > 0 ? obras.map((obra) => (
-          <div key={obra.id} className="tarjetaObra" onClick={() => abrirProyecto(obra)}>
-            {obra.tipo_archivo === 'video' ? <video src={obra.archivo_url} className="imgObra" /> :
-              <img src={obra.archivo_url} alt={obra.titulo} className="imgObra" />}
+      {/* ---------- Mi portafolio ---------- */}
+      <h2 className="dash-titulo-seccion">Mi portafolio</h2>
+      <div className="dash-grid">
+        {obras.length > 0 ? (
+          obras.map((obra) => (
+            <div key={obra.id} className="dash-tarjeta" onClick={() => abrirProyecto(obra)}>
+              {obra.tipo_archivo === 'video' ? (
+                <video src={obra.archivo_url} className="dash-tarjeta-media" muted />
+              ) : (
+                <img src={obra.archivo_url} alt={obra.titulo} className="dash-tarjeta-media" />
+              )}
 
-            <div className="infoObra">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <h3 style={{ margin: 0 }}>{obra.titulo}</h3>
-                <div className="statsPrivadas">
-                  <button onClick={(e) => manejarLike(e, obra.id, obra.miLike)} className="btnLikePrivado" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }} title={obra.miLike ? 'Quitar like' : 'Dar like'}>
-                    {obra.miLike ? <Heart size={14} fill="currentColor" color="#e74c3c" /> : <Heart size={14} color="#555" />} {obra.totalLikes}
-                  </button>
-                  <span title="Comentarios" style={{ marginLeft: '10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><MessageCircle size={14} /> {obra.comentarios?.[0]?.count || 0}</span>
-                </div>
-              </div>
+              <div className="dash-tarjeta-info">
+                <div className="dash-tarjeta-cabecera">
+                  <h3 className="dash-tarjeta-titulo">{obra.titulo}</h3>
 
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  borrarProyecto(obra.id);
-                }}
-                style={{ color: '#e74c3c', border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.8em', display: 'flex', alignItems: 'center', gap: '4px' }}
-              >
-                <Trash2 size={14} /> Eliminar
-              </button>
-            </div>
-          </div>
-        )) : <div className="sinObras">Sube tu primer proyecto arriba <Send size={16} style={{ verticalAlign: 'middle', marginLeft: '5px' }} /></div>}
-      </div>
-
-      {/* MODAL DE COMENTARIOS */}
-      {
-        proyectoSeleccionado && (
-          <div className="overlay" onClick={() => setProyectoSeleccionado(null)}>
-            <div className="modal" onClick={e => e.stopPropagation()}>
-              <div className="modalContent">
-                <div className="modalMedia">
-                  {proyectoSeleccionado.tipo_archivo === 'video' ?
-                    <video src={proyectoSeleccionado.archivo_url} controls autoPlay className="mediaFull" /> :
-                    <img src={proyectoSeleccionado.archivo_url} className="mediaFull" alt="" />
-                  }
-                </div>
-                <div className="modalSide">
-                  <button className="btnClose" onClick={() => {
-                    setProyectoSeleccionado(null);
-                    setRespondiendoA(null); // Limpiamos para que no se quede abierto al cambiar de post
-                  }}                   ><X size={24} /></button>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                    {editandoTitulo ? (
-                      <>
-                        <input
-                          value={tituloEditando}
-                          onChange={(e) => setTituloEditando(e.target.value)}
-                          maxLength={20}
-                          className="inputText" style={{ background: '#121212', color: 'white', flex: 1 }}
-                        />
-                        <button onClick={actualizarTituloProyecto} className="btnResponder"><Save size={16} /></button>
-                        <button onClick={() => { setEditandoTitulo(false); setTituloEditando(proyectoSeleccionado.titulo || ''); }} className="btnBorrar"><X size={16} /></button>
-                      </>
-                    ) : (
-                      <>
-                        <h2 className="modalTitulo">{proyectoSeleccionado.titulo}</h2>
-                        <button onClick={() => setEditandoTitulo(true)} className="btnResponder" style={{ alignSelf: 'center' }}><Pencil size={18} /></button>
-                      </>
-                    )}
-                  </div>
-                  {proyectoSeleccionado.descripcion && (
-                    <p className="descripcionText">{proyectoSeleccionado.descripcion}</p>
-                  )}
-                  <div className="listaComentarios">
-                    {/* Renderizamos solo los comentarios RAÍZ (sin padre), el componente se encarga del resto */}
-                    {comentarios.filter(c => !c.parent_id).map(c => (
-                      <ComentarioIndividual
-                        key={c.id}
-                        comentario={c}
-                        todosLosComentarios={comentarios}
-                        alResponder={setRespondiendoA}
-                        alBorrar={borrarComentario}
-                        respondiendoA={respondiendoA}
-                        enviarRespuesta={enviarRespuesta}
-                        textoRespuesta={textoRespuesta}
-                        setTextoRespuesta={setTextoRespuesta}
-                        currentUserId={usuario?.id}
-                        comentarioEditandoId={comentarioEditandoId}
-                        comentarioEditandoTexto={comentarioEditandoTexto}
-                        setComentarioEditandoId={setComentarioEditandoId}
-                        setComentarioEditandoTexto={setComentarioEditandoTexto}
-                        actualizarComentario={actualizarComentario}
-                      />
-                    ))}
-                  </div>
-
-                  <form onSubmit={enviarComentario} className="formComentario">
-                    <input
-                      className="inputComentario"
-                      placeholder="Escribe un comentario..."
-                      value={nuevoComentario}
-                      onChange={(e) => setNuevoComentario(e.target.value)}
-                    />
-                    <button type="submit" disabled={enviandoComentario} className="btnEnviarComment" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {enviandoComentario ? '...' : <Send size={18} />}
+                  <div className="dash-stats">
+                    <button
+                      type="button"
+                      onClick={(e) => manejarLike(e, obra.id, obra.miLike)}
+                      className={`dash-stat cursor-pointer ${obra.miLike ? 'activo' : ''}`}
+                      title={obra.miLike ? 'Quitar like' : 'Dar like'}
+                    >
+                      <Heart size={14} fill={obra.miLike ? 'currentColor' : 'none'} /> {obra.totalLikes}
                     </button>
-                  </form>
+
+                    <span className="dash-stat" title="Comentarios">
+                      <MessageCircle size={14} /> {obra.comentarios?.[0]?.count || 0}
+                    </span>
+                  </div>
                 </div>
+
+                <button
+                  type="button"
+                  className="accion peligro alinear-inicio"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    borrarProyecto(obra.id);
+                  }}
+                >
+                  <Trash2 size={14} /> Eliminar
+                </button>
               </div>
             </div>
+          ))
+        ) : (
+          <div className="dash-vacio">
+            <Inbox size={34} />
+            <span>Sube tu primer proyecto arriba para verlo aquí.</span>
           </div>
-        )
-      }
-      {/* MODAL DE CONFIRMACIÓN PARA SALIR */}
-      {mostrarModalSalir && (
-        <div className="overlay" onClick={() => setMostrarModalSalir(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ width: '350px', height: 'fit-content', padding: '35px 25px', textAlign: 'center', background: '#ffffffff', border: `1px solid ${perfil.colorPrincipal}`, boxShadow: `0 10px 40px ${perfil.colorPrincipal}33` }}>
-            <h2 style={{ color: '#000', marginBottom: '10px' }}>¿Deseas salir?</h2>
-            <p style={{ color: '#696969ff', marginBottom: '25px', fontSize: '15px' }}>Tu sesión se cerrará de forma segura.</p>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '15px' }}>
+        )}
+      </div>
+
+      {/* ---------- Modal de obra con comentarios ---------- */}
+      {proyectoSeleccionado && (
+        <div className="modal-fondo ancho" onClick={() => setProyectoSeleccionado(null)}>
+          <div className="modal-obra" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-obra-media">
+              {proyectoSeleccionado.tipo_archivo === 'video' ? (
+                <video src={proyectoSeleccionado.archivo_url} controls autoPlay />
+              ) : (
+                <img src={proyectoSeleccionado.archivo_url} alt="" />
+              )}
+            </div>
+
+            <div className="modal-obra-lado">
               <button
+                type="button"
+                className="btn-icono alinear-fin mb-3"
+                onClick={() => {
+                  setProyectoSeleccionado(null);
+                  setRespondiendoA(null);
+                }}
+                title="Cerrar"
+              >
+                <X size={18} />
+              </button>
+
+              <div className="modal-obra-cabecera">
+                {editandoTitulo ? (
+                  <>
+                    <input
+                      value={tituloEditando}
+                      onChange={(e) => setTituloEditando(e.target.value)}
+                      maxLength={20}
+                      className="campo"
+                    />
+                    <button
+                      type="button"
+                      onClick={actualizarTituloProyecto}
+                      className="accion exito"
+                      title="Guardar título"
+                    >
+                      <Save size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditandoTitulo(false);
+                        setTituloEditando(proyectoSeleccionado.titulo || '');
+                      }}
+                      className="accion peligro"
+                      title="Cancelar"
+                    >
+                      <X size={16} />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <h2 className="modal-obra-titulo">{proyectoSeleccionado.titulo}</h2>
+                    <button
+                      type="button"
+                      onClick={() => setEditandoTitulo(true)}
+                      className="accion"
+                      title="Editar título"
+                    >
+                      <Pencil size={16} />
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {proyectoSeleccionado.descripcion && (
+                <p className="modal-obra-descripcion">{proyectoSeleccionado.descripcion}</p>
+              )}
+
+              <div className="lista-comentarios">
+                {comentarios.filter((c) => !c.parent_id).map((c) => (
+                  <ComentarioIndividual
+                    key={c.id}
+                    comentario={c}
+                    todosLosComentarios={comentarios}
+                    alResponder={setRespondiendoA}
+                    alBorrar={borrarComentario}
+                    respondiendoA={respondiendoA}
+                    enviarRespuesta={enviarRespuesta}
+                    textoRespuesta={textoRespuesta}
+                    setTextoRespuesta={setTextoRespuesta}
+                    currentUserId={usuario?.id}
+                    comentarioEditandoId={comentarioEditandoId}
+                    comentarioEditandoTexto={comentarioEditandoTexto}
+                    setComentarioEditandoId={setComentarioEditandoId}
+                    setComentarioEditandoTexto={setComentarioEditandoTexto}
+                    actualizarComentario={actualizarComentario}
+                  />
+                ))}
+              </div>
+
+              <form onSubmit={enviarComentario} className="form-comentario">
+                <input
+                  className="campo"
+                  placeholder="Escribe un comentario..."
+                  value={nuevoComentario}
+                  onChange={(e) => setNuevoComentario(e.target.value)}
+                />
+                <button type="submit" disabled={enviandoComentario} className="btn-enviar-comentario" title="Enviar">
+                  <Send size={18} />
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---------- Confirmación de salida ---------- */}
+      {mostrarModalSalir && (
+        <div className="modal-fondo" onClick={() => setMostrarModalSalir(false)}>
+          <div className="modal-caja" onClick={(e) => e.stopPropagation()}>
+            <LogOut size={42} className="icono-modal" style={{ color: 'var(--marca-400)' }} />
+            <h3 className="modal-titulo">¿Deseas salir?</h3>
+            <p className="modal-texto">Tu sesión se cerrará de forma segura.</p>
+            <div className="modal-acciones">
+              <button
+                type="button"
+                className="btn btn-ghost"
                 onClick={() => setMostrarModalSalir(false)}
-                className="btnCancelar"
               >
                 No, quedarme
               </button>
               <button
-                onClick={() => { setMostrarModalSalir(false); manejarCerrarSesion(); }}
-                className="btnConfirmar"
+                type="button"
+                className="btn btn-peligro"
+                onClick={() => {
+                  setMostrarModalSalir(false);
+                  manejarCerrarSesion();
+                }}
               >
                 <LogOut size={16} /> Sí, salir
               </button>
@@ -1112,11 +1467,10 @@ const Dashboard = ({ alCerrarSesion }) => {
           </div>
         </div>
       )}
-    </section >
+
+      <AlertModal alerta={alerta} setAlerta={setAlerta} />
+    </section>
   );
 };
-
-
-
 
 export default Dashboard;

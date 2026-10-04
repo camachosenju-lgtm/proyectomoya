@@ -2,11 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { moderador } from './moderacion';
+import ComentarioIndividual from './ComentarioIndividual';
+import AlertModal from './AlertModal';
+import ModalReporte from './ModalReporte';
+import { esFondoClaro } from './temasPerfil';
+import '../estilos/perfil.css';
+import { ArrowLeft, User, Heart, MessageCircle, Inbox, Send, X, Flag, UserPlus, UserMinus } from 'lucide-react';
 
 const PerfilPublico = () => {
   const { idUsuario } = useParams();
   const navigate = useNavigate();
-  
+
   const [perfil, setPerfil] = useState(null);
   const [obras, setObras] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -18,25 +24,37 @@ const PerfilPublico = () => {
   const [enviandoComentario, setEnviandoComentario] = useState(false);
   const [respondiendoA, setRespondiendoA] = useState(null);
   const [textoRespuesta, setTextoRespuesta] = useState('');
-
   const [comentarioEditandoId, setComentarioEditandoId] = useState(null);
+  const [comentarioEditandoTexto, setComentarioEditandoTexto] = useState('');
+
+  const [alerta, setAlerta] = useState({ visible: false, mensaje: '', tipo: 'info', titulo: '', onConfirm: null });
+  const avisar = (mensaje, tipo = 'info', titulo) =>
+    setAlerta({ visible: true, mensaje, tipo, titulo, onConfirm: null });
+  const pedirConfirmacion = (mensaje, onConfirm, titulo = 'Confirmación') =>
+    setAlerta({ visible: true, mensaje, tipo: 'confirm', titulo, onConfirm });
+
+  const [reporte, setReporte] = useState(null);
+  const [siguiendo, setSiguiendo] = useState(false);
+  const [nSeguidores, setNSeguidores] = useState(0);
+
+  const cerrarReporte = (ok) => {
+    setReporte(null);
+    if (ok) avisar('Reporte enviado. Un moderador lo revisará.', 'exito');
+  };
 
   useEffect(() => {
     const cargarTodo = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      setMiId(user?.id);
+      setMiId(user?.id || null);
 
       const { data: dataPerfil } = await supabase
         .from('perfiles').select('*').eq('id', idUsuario).single();
 
-      if (dataPerfil) {
-        setPerfil(dataPerfil);
-        document.body.style.backgroundColor = dataPerfil.color_fondo_web || '#0f0f0f';
-      }
+      if (dataPerfil) setPerfil(dataPerfil);
 
       const { data: dataObras } = await supabase
         .from('proyectos')
-        .select(`*, likes (usuario_id), comentarios (count)`)
+        .select('*, likes (usuario_id), comentarios (count)')
         .eq('usuario_id', idUsuario)
         .order('creado_el', { ascending: false });
 
@@ -52,18 +70,60 @@ const PerfilPublico = () => {
     };
 
     cargarTodo();
-    return () => { document.body.style.backgroundColor = null; };
   }, [idUsuario]);
+
+  useEffect(() => {
+    const cargarSeguimiento = async () => {
+      if (!miId) return;
+      const { data } = await supabase.from('seguimientos').select('id')
+        .eq('seguidor_id', miId).eq('seguido_id', idUsuario);
+      setSiguiendo((data || []).length > 0);
+      const { count } = await supabase.from('seguimientos')
+        .select('id', { count: 'exact', head: true }).eq('seguido_id', idUsuario);
+      setNSeguidores(count || 0);
+    };
+    cargarSeguimiento();
+  }, [miId, idUsuario]);
+
+  const alternarSeguir = async () => {
+    if (!miId || String(miId) === String(idUsuario)) return;
+    if (siguiendo) {
+      await supabase.from('seguimientos').delete()
+        .eq('seguidor_id', miId).eq('seguido_id', idUsuario);
+      setSiguiendo(false);
+      setNSeguidores((n) => Math.max(0, n - 1));
+    } else {
+      const { error } = await supabase.from('seguimientos').insert({
+        seguidor_id: miId, seguido_id: idUsuario,
+      });
+      if (error) {
+        avisar('No se pudo seguir: ' + error.message, 'error');
+        return;
+      }
+      setSiguiendo(true);
+      setNSeguidores((n) => n + 1);
+    }
+  };
+
+  const registrarVista = (proyectoId) => {
+    if (!proyectoId) return;
+    supabase.from('vistas').insert({ proyecto_id: proyectoId, usuario_id: miId || null })
+      .then(() => {}, () => {});
+  };
 
   const abrirProyecto = (proyecto) => {
     setProyectoSeleccionado(proyecto);
+    registrarVista(proyecto.id);
+    setRespondiendoA(null);
+    setComentarioEditandoId(null);
+    setComentarioEditandoTexto('');
     fetchComentarios(proyecto.id);
   };
 
   const fetchComentarios = async (proyectoId) => {
     const { data } = await supabase
       .from('comentarios')
-      .select(`id, contenido, creado_el, usuario_id, parent_id, perfiles ( nombre_completo, avatar_url )`)
+      .select('id, contenido, creado_el, usuario_id, parent_id, proyecto_id, perfiles ( id, nombre_completo, avatar_url )')
       .eq('proyecto_id', proyectoId)
       .order('creado_el', { ascending: true });
     setComentarios(data || []);
@@ -74,14 +134,13 @@ const PerfilPublico = () => {
     if (!nuevoComentario.trim() || !miId) return;
 
     if (nuevoComentario.trim().length > 100) {
-      alert('⚠️ El comentario es demasiado largo (máximo 100 caracteres).');
+      avisar('El comentario es demasiado largo (máximo 100 caracteres).', 'info');
       return;
     }
 
     const moderacion = await moderador.validarTexto(nuevoComentario.trim());
     if (!moderacion.seguro) {
-      alert('❌ Comentario bloqueado: ' + (moderacion.razon || 'Contenido inapropiado detectado.'));
-      console.log('Moderación Perfil Público:', moderacion.detalle);
+      avisar(moderacion.razon || 'Contenido inapropiado detectado.', 'error', 'Comentario bloqueado');
       return;
     }
 
@@ -100,337 +159,279 @@ const PerfilPublico = () => {
 
   const enviarRespuesta = async (padreId) => {
     if (!proyectoSeleccionado?.id) {
-      alert('Error: proyecto no seleccionado.');
+      avisar('Error: proyecto no seleccionado.', 'error');
       return;
     }
-
     if (!textoRespuesta.trim()) {
-      alert('Escribe tu respuesta antes de enviar.');
+      avisar('Escribe tu respuesta antes de enviar.', 'info');
       return;
     }
-
     if (textoRespuesta.trim().length > 100) {
-      alert('⚠️ El comentario es demasiado largo (máximo 100 caracteres).');
+      avisar('La respuesta es demasiado larga (máximo 100 caracteres).', 'info');
       return;
     }
 
     const moderacionRespuesta = await moderador.validarTexto(textoRespuesta.trim());
     if (!moderacionRespuesta.seguro) {
-      alert('❌ Respuesta bloqueada: contenido inapropiado detectado.');
+      avisar('Contiene contenido inapropiado.', 'error', 'Respuesta bloqueada');
       return;
     }
 
-    const { data, error } = await supabase
-      .from('comentarios')
-      .insert([{
-        proyecto_id: proyectoSeleccionado.id,
-        usuario_id: miId,
-        contenido: textoRespuesta.trim(),
-        parent_id: padreId
-      }])
-      .select('*, perfiles(*)');
+    const { error } = await supabase.from('comentarios').insert([{
+      proyecto_id: proyectoSeleccionado.id,
+      usuario_id: miId,
+      contenido: textoRespuesta.trim(),
+      parent_id: padreId
+    }]);
 
     if (error) {
-      console.error('Error de Supabase:', error.message);
-      alert('Error al responder: ' + error.message);
+      avisar('Error al responder: ' + error.message, 'error');
       return;
     }
 
     await fetchComentarios(proyectoSeleccionado.id);
-
     setTextoRespuesta('');
     setRespondiendoA(null);
   };
 
-  const borrarComentario = async (comentarioId) => {
-    const confirmar = window.confirm("¿Estás seguro de que quieres eliminar este comentario?");
-    if (!confirmar) return;
-
-    try {
-      const { error } = await supabase
-        .from('comentarios')
-        .delete()
-        .eq('id', comentarioId);
-
-      if (error) throw error;
-
-      // Actualizamos el estado local para que el comentario desaparezca visualmente
+  const borrarComentario = (comentarioId) => {
+    pedirConfirmacion('¿Estás seguro de que quieres eliminar este comentario?', async () => {
+      const { error } = await supabase.from('comentarios').delete().eq('id', comentarioId);
+      if (error) {
+        avisar('Error al borrar: ' + error.message, 'error');
+        return;
+      }
       setComentarios(prev => prev.filter(c => c.id !== comentarioId));
-
-    } catch (err) {
-      alert("❌ Error al borrar: " + err.message);
-    }
+    }, 'Eliminar comentario');
   };
 
-    const actualizarComentario = async (comentarioId, contenido) => {
+  const actualizarComentario = async (comentarioId, contenido) => {
     const textoParaValidar = contenido.trim();
-
     if (!textoParaValidar) {
-      alert('El contenido no puede estar vacío.');
+      avisar('El contenido no puede estar vacío.', 'info');
       return;
     }
-    
-    // Mantenemos el límite de 100 caracteres de esta vista
     if (textoParaValidar.length > 100) {
-      alert('⚠️ El comentario es demasiado largo (máximo 100 caracteres).');
+      avisar('El comentario es demasiado largo (máximo 100 caracteres).', 'info');
       return;
     }
 
-    // --- MODERACIÓN DE TEXTO ---
-    // Importante: Asegúrate de tener el import de 'moderador' arriba
     const resultadoModeracion = await moderador.validarTexto(textoParaValidar);
-    
     if (!resultadoModeracion.seguro) {
-      alert('❌ Comentario bloqueado: ' + (resultadoModeracion.razon || 'Contenido inapropiado.'));
+      avisar(resultadoModeracion.razon || 'Contenido inapropiado.', 'error', 'Comentario bloqueado');
       return;
     }
 
-    // --- ACTUALIZACIÓN EN SUPABASE ---
     const { error } = await supabase
       .from('comentarios')
       .update({ contenido: textoParaValidar })
       .eq('id', comentarioId);
-      // Nota: Si tienes el ID del usuario logueado, es buena práctica añadir .eq('usuario_id', miId)
 
     if (error) {
-      alert('Error al actualizar comentario: ' + error.message);
+      avisar('Error al actualizar comentario: ' + error.message, 'error');
       return;
     }
 
-    // --- ACTUALIZACIÓN DE ESTADO LOCAL ---
-    setComentarios(prev => 
+    setComentarios(prev =>
       prev.map(c => c.id === comentarioId ? { ...c, contenido: textoParaValidar } : c)
     );
     setComentarioEditandoId(null);
-};
+    setComentarioEditandoTexto('');
+  };
 
   const manejarLike = async (e, proyectoId, yaTieneLike) => {
     e.stopPropagation();
     if (!miId) return;
-    setObras(prev => prev.map(p => p.id === proyectoId ? 
+    setObras(prev => prev.map(p => p.id === proyectoId ?
       { ...p, miLike: !yaTieneLike, totalLikes: yaTieneLike ? Number(p.totalLikes) - 1 : Number(p.totalLikes) + 1 } : p
     ));
     if (yaTieneLike) await supabase.from('likes').delete().match({ usuario_id: miId, proyecto_id: proyectoId });
     else await supabase.from('likes').insert({ usuario_id: miId, proyecto_id: proyectoId });
   };
 
-  const ComentarioIndividual = ({ comentario, todosLosComentarios, alResponder, alBorrar, respondiendoA, enviarRespuesta, textoRespuesta, setTextoRespuesta, miId, comentarioEditandoId, setComentarioEditandoId, actualizarComentario }) => {
-    const [textoLocal, setTextoLocal] = useState(comentario.contenido || '');
-
-    const hijos = todosLosComentarios.filter(h => String(h.parent_id) === String(comentario.id));
-    const esPropio = String(comentario.usuario_id) === String(miId);
-    const estaEditando = String(comentarioEditandoId) === String(comentario.id);
-
-    useEffect(() => {
-      if (estaEditando) {
-        setTextoLocal(comentario.contenido || '');
-      }
-    }, [estaEditando, comentario.contenido]);
-
-    return (
-      <div style={{ 
-        marginBottom: '10px', 
-        marginLeft: comentario.parent_id ? '30px' : '0px', // Sangría solo si es hijo
-        borderLeft: comentario.parent_id ? '1px solid #444' : 'none',
-        paddingLeft: comentario.parent_id ? '15px' : '0px'
-      }}>
-        <div style={estilos.comentarioItem}>
-          <img src={comentario.perfiles?.avatar_url || "..."} style={estilos.miniAvatarComment} alt="" />
-          <div style={{ flex: 1 }}>
-            <strong style={{ fontSize: '0.8em', color: '#f07e11' }}>{comentario.perfiles?.nombre_completo}</strong>
-            {estaEditando ? (
-              <div style={{ display: 'flex', gap: '8px', marginTop: '6px', alignItems: 'center' }}>
-                <input
-                  value={textoLocal}
-                  onChange={e => setTextoLocal(e.target.value)}
-                  style={{ flex: 1, borderRadius: '6px', border: '1px solid #555', background: '#111', color: '#fff', padding: '6px' }}
-                />
-                <button onClick={() => actualizarComentario(comentario.id, textoLocal)} style={{ ...estilos.btnResponder, background:'#27ae60', color:'#fff' }}>💾</button>
-                <button onClick={() => { setComentarioEditandoId(null); setTextoLocal(comentario.contenido || ''); }} style={{ ...estilos.btnBorrar, color:'#fff' }}>✕</button>
-              </div>
-            ) : (
-              <>
-                <p style={estilos.textoComentario}>{comentario.contenido}</p>
-                <div style={{ display:'flex', gap:'8px' }}>
-                  <button onClick={() => alResponder(comentario.id)} style={estilos.btnResponder}>Responder</button>
-                  {esPropio && <button onClick={() => { setComentarioEditandoId(comentario.id); setTextoLocal(comentario.contenido || ''); }} style={estilos.btnResponder}>✏️</button>}
-                </div>
-              </>
-            )}
-          </div>
-          {miId === comentario.usuario_id && <button onClick={() => alBorrar(comentario.id)} style={estilos.btnBorrar}>🗑️</button>}
-        </div>
-
-        {/* INPUT DE RESPUESTA SI ESTÁ ACTIVO */}
-        {respondiendoA === comentario.id && (
-          <div style={{ marginTop: '10px', display: 'flex', gap: '5px', marginLeft: '20px' }}>
-            <input 
-              type="text" 
-              placeholder="Escribe tu respuesta..." 
-              style={estilos.inputComentario}
-              value={textoRespuesta}
-              onChange={(e) => setTextoRespuesta(e.target.value)}
-              autoFocus
-            />
-            <button 
-              onClick={() => enviarRespuesta(comentario.id)} 
-              style={estilos.btnEnviarComment}
-            >
-              ➤
-            </button>
-          </div>
-        )}
-
-        {/* LA MAGIA: El componente se llama a sí mismo para renderizar a sus propios hijos */}
-        {hijos.map(hijo => (
-          <ComentarioIndividual 
-            key={hijo.id}
-            comentario={hijo}
-            todosLosComentarios={todosLosComentarios}
-            alResponder={alResponder}
-            alBorrar={alBorrar}
-            respondiendoA={respondiendoA}
-            enviarRespuesta={enviarRespuesta}
-            textoRespuesta={textoRespuesta}
-            setTextoRespuesta={setTextoRespuesta}
-            miId={miId}
-            comentarioEditandoId={comentarioEditandoId}
-            setComentarioEditandoId={setComentarioEditandoId}
-            actualizarComentario={actualizarComentario}
-          />
-        ))}
-      </div>
-    );
+  const obtenerFondoHeader = () => {
+    if (perfil?.imagen_fondo_url) return `url(${perfil.imagen_fondo_url}) center/cover no-repeat`;
+    return perfil?.color_principal || perfil?.color_fondo_web || undefined;
   };
 
-  if (cargando) return <div style={{color:'white', textAlign:'center', padding:'100px'}}>Cargando...</div>;
+  if (cargando) return <div className="dash-pantalla"><p className="dash-cargando">Cargando perfil...</p></div>;
+
+  const cabeceraClara = !perfil?.imagen_fondo_url && esFondoClaro(perfil?.color_fondo_web);
 
   return (
-    <section style={estilos.container}>
-      <div style={estilos.nav}>
-        <button onClick={() => navigate('/galeria')} style={estilos.btnVolver}>⬅ Volver a Explorer</button>
-        <button onClick={() => navigate('/dashboard')} style={estilos.btnVolver}>⬅ Volver a mi perfil</button>
-      </div>
-
-      <div style={{...estilos.header, background: perfil?.imagen_fondo_url ? `url(${perfil.imagen_fondo_url}) center/cover` : perfil?.color_principal || '#222'}}>
-        <img style={estilos.avatar} src={perfil?.avatar_url || "https://via.placeholder.com/120"} alt="Avatar" />
-        <h1 style={{ ...estilos.nombre, color: perfil?.color_letra_nombre || '#ffffff' }}>{perfil?.nombre_completo}</h1>
-        <p style={{ ...estilos.bio, color: perfil?.color_letra_bio || '#ffffff' }}>{perfil?.biografia || "Sin biografía disponible"}</p>
-      </div>
-
-      <div style={estilos.grid}>
-        {obras.map((obra) => (
-          <div key={obra.id} style={estilos.tarjeta} onClick={() => abrirProyecto(obra)}>
-            <div style={estilos.mediaContainer}>
-              {/* SOPORTE PARA VIDEO EN MINIATURA */}
-              {obra.tipo_archivo === 'video' ? 
-                <video src={obra.archivo_url} style={estilos.media} muted loop onMouseOver={e => e.target.play()} onMouseOut={e => e.target.pause()} /> : 
-                <img src={obra.archivo_url} style={estilos.media} alt="" />
-              }
-              <button onClick={(e) => manejarLike(e, obra.id, obra.miLike)} style={estilos.btnLike} title={obra.miLike ? 'Quitar like' : 'Dar like'}>
-                {obra.miLike ? '❤️' : '🤍'} {obra.totalLikes}
+    <section className="dash-pantalla">
+      <div className="dash-barra">
+        <button type="button" className="btn btn-ghost" onClick={() => navigate('/galeria')}>
+          <ArrowLeft size={18} /> Explorar
+        </button>
+        <div className="fila">
+          {miId && String(miId) !== String(idUsuario) && (
+            <>
+              <button
+                type="button"
+                className={`btn ${siguiendo ? 'btn-ghost' : 'btn-primario'}`}
+                onClick={alternarSeguir}
+              >
+                {siguiendo ? <UserMinus size={17} /> : <UserPlus size={17} />}
+                {siguiendo ? 'Dejar de seguir' : 'Seguir'}
               </button>
-            </div>
-            <div style={estilos.info}>
-              <h3 style={estilos.tituloObra}>{obra.titulo}</h3>
-              <span style={{color: '#aaa'}}>💬 {obra.comentarios?.[0]?.count || 0}</span>
-            </div>
-          </div>
-        ))}
+              <button
+                type="button"
+                className="btn-icono"
+                title="Reportar perfil"
+                onClick={() => setReporte({ tipo: 'perfil', objetivoId: idUsuario, tituloObjetivo: perfil?.nombre_completo || 'Este perfil' })}
+              >
+                <Flag size={16} />
+              </button>
+            </>
+          )}
+          <button type="button" className="btn btn-secundario" onClick={() => navigate('/dashboard')}>
+            <User size={18} /> Mi perfil
+          </button>
+        </div>
       </div>
 
-      {/* MODAL CON VIDEO Y DESCRIPCIÓN */}
-      {proyectoSeleccionado && (
-        <div style={estilos.overlay} onClick={() => setProyectoSeleccionado(null)}>
-          <div style={estilos.modal} onClick={e => e.stopPropagation()}>
-            <div style={estilos.modalContent}>
-              <div style={estilos.modalMedia}>
-                {proyectoSeleccionado.tipo_archivo === 'video' ? 
-                  <video src={proyectoSeleccionado.archivo_url} controls autoPlay style={estilos.mediaFull} /> : 
-                  <img src={proyectoSeleccionado.archivo_url} style={estilos.mediaFull} alt="" />
-                }
-              </div>
-              <div style={estilos.modalSide}>
-                <button style={estilos.btnClose} onClick={() => {
-                     setProyectoSeleccionado(null);
-                     setRespondiendoA(null); // Limpiamos para que no se quede abierto al cambiar de post
-}}                   >✕</button>
-                <h2 style={estilos.modalTitulo}>{proyectoSeleccionado.titulo}</h2>
-                
-                {/* AQUÍ SE MUESTRA LA DESCRIPCIÓN (solo si existe) */}
-                {proyectoSeleccionado.descripcion && (
-                  <p style={estilos.descripcionText}>{proyectoSeleccionado.descripcion}</p>
-                )}
+      <div className="dash-cabecera" style={obtenerFondoHeader() ? { background: obtenerFondoHeader() } : undefined}>
+        {perfil?.avatar_url ? (
+          <img className="dash-avatar" src={perfil.avatar_url} alt="Foto de perfil" />
+        ) : (
+          <div className="dash-avatar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <User size={54} color="var(--texto-3)" />
+          </div>
+        )}
+        <h1 className={`dash-nombre${cabeceraClara ? ' claro' : ''}`} style={perfil?.color_letra_nombre ? { color: perfil.color_letra_nombre } : undefined}>
+          {perfil?.nombre_completo}
+        </h1>
+        <p className={`dash-bio${cabeceraClara ? ' clara' : ''}`} style={perfil?.color_letra_bio ? { color: perfil.color_letra_bio } : undefined}>
+          {perfil?.biografia || 'Sin biografía disponible'}
+        </p>
+        <div className="fila centrado-fila">
+          <span className="badge"><User size={13} /> {nSeguidores} seguidor{nSeguidores === 1 ? '' : 'es'}</span>
+          {perfil?.disponible_trabajo && (
+            <span className="badge marca">Disponible para trabajar{perfil?.area_trabajo ? ` · ${perfil.area_trabajo}` : ''}</span>
+          )}
+        </div>
+        {perfil?.disponible_trabajo && perfil?.contacto_trabajo && (
+          <p className="texto-2 sin-margen mt-3">Contacto: {perfil.contacto_trabajo}</p>
+        )}
+      </div>
 
-                <div style={estilos.listaComentarios}>
-                  {/* Renderizamos solo los comentarios RAÍZ (sin padre), el componente se encarga del resto */}
-                  {comentarios.filter(c => !c.parent_id).map(c => (
-                    <ComentarioIndividual 
-                      key={c.id}
-                      comentario={c}
-                      todosLosComentarios={comentarios}
-                      alResponder={setRespondiendoA}
-                      alBorrar={borrarComentario}
-                      respondiendoA={respondiendoA}
-                      enviarRespuesta={enviarRespuesta}
-                      textoRespuesta={textoRespuesta}
-                      setTextoRespuesta={setTextoRespuesta}
-                      miId={miId}
-                      comentarioEditandoId={comentarioEditandoId}
-                      setComentarioEditandoId={setComentarioEditandoId}
-                      actualizarComentario={actualizarComentario}
-                    />
-                  ))}
+      <h2 className="dash-titulo-seccion">Portafolio de {perfil?.nombre_completo}</h2>
+      <div className="dash-grid">
+        {obras.length > 0 ? (
+          obras.map((obra) => (
+            <div key={obra.id} className="dash-tarjeta" onClick={() => abrirProyecto(obra)}>
+              {obra.tipo_archivo === 'video' ? (
+                <video src={obra.archivo_url} className="dash-tarjeta-media" muted playsInline preload="metadata" />
+              ) : (
+                <img src={obra.archivo_url} alt={obra.titulo} className="dash-tarjeta-media" />
+              )}
+              <div className="dash-tarjeta-info">
+                <div className="dash-tarjeta-cabecera">
+                  <h3 className="dash-tarjeta-titulo">{obra.titulo}</h3>
+                  <div className="dash-stats">
+                    <button
+                      type="button"
+                      onClick={(e) => manejarLike(e, obra.id, obra.miLike)}
+                      className={`dash-stat ${obra.miLike ? 'activo' : ''}`}
+                      title={obra.miLike ? 'Quitar like' : 'Dar like'}
+                    >
+                      <Heart size={14} fill={obra.miLike ? 'currentColor' : 'none'} /> {obra.totalLikes}
+                    </button>
+                    <span className="dash-stat" title="Comentarios">
+                      <MessageCircle size={14} /> {obra.comentarios?.[0]?.count || 0}
+                    </span>
+                  </div>
                 </div>
-                <form onSubmit={enviarComentario} style={estilos.formComentario}>
-                  <input style={estilos.inputComentario} value={nuevoComentario} onChange={(e) => setNuevoComentario(e.target.value)} placeholder="Añadir comentario..." />
-                  <button type="submit" style={estilos.btnEnviar}>➤</button>
-                </form>
               </div>
+            </div>
+          ))
+        ) : (
+          <div className="dash-vacio">
+            <Inbox size={34} />
+            <span>Este usuario aún no ha publicado obras.</span>
+          </div>
+        )}
+      </div>
+
+      {proyectoSeleccionado && (
+        <div className="modal-fondo ancho" onClick={() => setProyectoSeleccionado(null)}>
+          <div className="modal-obra" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-obra-media">
+              {proyectoSeleccionado.tipo_archivo === 'video' ? (
+                <video src={proyectoSeleccionado.archivo_url} controls autoPlay />
+              ) : (
+                <img src={proyectoSeleccionado.archivo_url} alt={proyectoSeleccionado.titulo} />
+              )}
+            </div>
+            <div className="modal-obra-lado">
+              <div className="modal-obra-cabecera">
+                <h2 className="modal-obra-titulo">{proyectoSeleccionado.titulo}</h2>
+                <button
+                  type="button"
+                  className="accion"
+                  title="Reportar proyecto"
+                  onClick={() => setReporte({ tipo: 'proyecto', objetivoId: proyectoSeleccionado.id, tituloObjetivo: proyectoSeleccionado.titulo })}
+                >
+                  <Flag size={16} />
+                </button>
+                <button type="button" className="btn-icono chico" onClick={() => setProyectoSeleccionado(null)} title="Cerrar">
+                  <X size={16} />
+                </button>
+              </div>
+
+              {proyectoSeleccionado.descripcion && (
+                <p className="modal-obra-descripcion">{proyectoSeleccionado.descripcion}</p>
+              )}
+              <p className="modal-obra-conteo">
+                {comentarios.length} comentario{comentarios.length === 1 ? '' : 's'}
+              </p>
+
+              <div className="lista-comentarios">
+                {comentarios.filter(c => !c.parent_id).map(c => (
+                  <ComentarioIndividual
+                    key={c.id}
+                    comentario={c}
+                    todosLosComentarios={comentarios}
+                    alResponder={setRespondiendoA}
+                    alBorrar={borrarComentario}
+                    respondiendoA={respondiendoA}
+                    enviarRespuesta={enviarRespuesta}
+                    textoRespuesta={textoRespuesta}
+                    setTextoRespuesta={setTextoRespuesta}
+                    currentUserId={miId}
+                    comentarioEditandoId={comentarioEditandoId}
+                    comentarioEditandoTexto={comentarioEditandoTexto}
+                    setComentarioEditandoId={setComentarioEditandoId}
+                    setComentarioEditandoTexto={setComentarioEditandoTexto}
+                    actualizarComentario={actualizarComentario}
+                    esMiPublicacion={String(miId) === String(idUsuario)}
+                    alReportar={(c) => setReporte({ tipo: 'comentario', objetivoId: c.id, tituloObjetivo: `Comentario: "${(c.contenido || '').slice(0, 60)}"` })}
+                  />
+                ))}
+              </div>
+
+              <form onSubmit={enviarComentario} className="form-comentario">
+                <input
+                  className="campo"
+                  value={nuevoComentario}
+                  onChange={(e) => setNuevoComentario(e.target.value)}
+                  placeholder="Añadir comentario..."
+                  maxLength={100}
+                />
+                <button type="submit" disabled={enviandoComentario} className="btn-enviar-comentario" title="Enviar">
+                  <Send size={17} />
+                </button>
+              </form>
             </div>
           </div>
         </div>
       )}
+
+      <AlertModal alerta={alerta} setAlerta={setAlerta} />
+      <ModalReporte reporte={reporte} onClose={cerrarReporte} />
     </section>
   );
-};
-
-const estilos = {
-  container: { maxWidth: '1200px', margin: '0 auto', padding: '20px', minHeight: '100vh' },
-  nav: { marginBottom: '20px' },
-  btnVolver: { background: '#222', color: '#f07e11', border: '1px solid #444', padding: '10px 20px', borderRadius: '12px', cursor: 'pointer', fontWeight: 'bold' },
-  header: { textAlign: 'center', padding: '50px 20px', borderRadius: '25px', marginBottom: '30px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', color: 'white' },
-  avatar: { width: '120px', height: '120px', borderRadius: '50%', border: '4px solid #f07e11', objectFit: 'cover' },
-  nombre: { fontSize: '2.5em', margin: '15px 0 5px', wordBreak: 'break-word', overflowWrap: 'break-word', whiteSpace: 'pre-wrap' },
-  bio: { opacity: 0.8, maxWidth: '600px', margin: '0 auto', wordBreak: 'break-word', overflowWrap: 'break-word', whiteSpace: 'pre-wrap', backgroundColor: 'rgba(0,0,0,0.45)', padding: '10px 14px', borderRadius: '14px' },
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' },
-  tarjeta: { background: '#1a1a1a', borderRadius: '18px', overflow: 'hidden', border: '1px solid #333', cursor: 'pointer' },
-  mediaContainer: { position: 'relative', height: '190px', background: '#000' },
-  media: { width: '100%', height: '100%', objectFit: 'cover' },
-  btnLike: { position: 'absolute', bottom: '10px', right: '10px', background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: '15px', padding: '5px 12px', color: 'white' },
-  info: { padding: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  tituloObra: { color: 'white', margin: 0, fontSize: '1.1em' },
-  overlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.9)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 2000 },
-  modal: { width: '90%', maxWidth: '1000px', height: '80vh', background: '#111', borderRadius: '25px', overflow: 'hidden', border: '1px solid #333' },
-  modalContent: { display: 'flex', height: '100%' },
-  modalMedia: { flex: 2, background: '#000', display: 'flex', alignItems: 'center' },
-  mediaFull: { width: '100%', height: '100%', objectFit: 'contain' },
-  modalSide: { flex: 1, padding: '25px', display: 'flex', flexDirection: 'column', borderLeft: '1px solid #333', color: 'white' },
-  btnClose: { alignSelf: 'flex-end', background: 'none', border: 'none', color: 'white', fontSize: '24px', cursor: 'pointer' },
-  modalTitulo: { color: '#f07e11', margin: '10px 0' },
-
-  descripcionText: { fontSize: '0.95em', color: '#ccc', marginBottom: '20px', lineHeight: '1.4', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', wordBreak: 'break-word', background: 'rgba(0,0,0,0.55)', padding: '14px', borderRadius: '12px' },
-  listaComentarios: { flex: 1, overflowY: 'auto', marginBottom: '15px' },
-  comentarioItem: { display: 'flex', gap: '10px', marginBottom: '15px', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #333' },
-  miniAvatar: { width: '30px', height: '30px', borderRadius: '50%' },
-  miniAvatarComment: { width: '30px', height: '30px', borderRadius: '50%' },
-  textoComentario: { fontSize: '0.9em', margin: 0, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', wordBreak: 'break-all' },
-  btnResponder: { background: 'none', border: 'none', color: '#f07e11', cursor: 'pointer', fontSize: '0.8em', padding: '2px 0' },
-  btnBorrar: { background: 'none', border: 'none', color: '#e74c3c', cursor: 'pointer', fontSize: '1em', padding: '5px' },
-  formComentario: { display: 'flex', gap: '10px' },
-  inputComentario: { flex: 1, background: '#222', border: '1px solid #444', color: 'white', padding: '10px', borderRadius: '10px' },
-  btnEnviar: { background: '#f07e11', border: 'none', padding: '0 15px', borderRadius: '10px', cursor: 'pointer' },
-  btnEnviarComment: { background: '#f07e11', border: 'none', padding: '0 15px', borderRadius: '10px', cursor: 'pointer' }
 };
 
 export default PerfilPublico;

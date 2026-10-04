@@ -1,115 +1,125 @@
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
+import { Eye, EyeOff, KeyRound } from 'lucide-react';
 import imagenDeFondo from '../imagenes/fondo.jpg';
 import logoPocketwork from '../imagenes/logo.png';
+import './estilos.css';
+
+const RUTA_LOGIN = '/login';
+
+// Campo de contraseña reutilizable con ojo para mostrar/ocultar.
+const CampoClave = ({ valor, alCambiar, placeholder, visible, alternarVisible, deshabilitado }) => (
+  <div className="campo-password">
+    <KeyRound size={18} className="icono-campo" />
+    <input
+      type={visible ? 'text' : 'password'}
+      placeholder={placeholder}
+      aria-label={placeholder}
+      value={valor}
+      minLength={6}
+      maxLength={30}
+      onChange={(e) => alCambiar(e.target.value)}
+      className="campo campo-con-icono campo-con-ojo"
+      autoComplete="new-password"
+      required
+      disabled={deshabilitado}
+    />
+    <button
+      type="button"
+      className="boton-ojo"
+      onClick={alternarVisible}
+      aria-label={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+    >
+      {visible ? <EyeOff size={18} /> : <Eye size={18} />}
+    </button>
+  </div>
+);
 
 const ActualizarPassword = () => {
   const [nuevaPassword, setNuevaPassword] = useState('');
   const [confirmar, setConfirmar] = useState('');
-  const [mensaje, setMensaje] = useState('');
+  const [verNueva, setVerNueva] = useState(false);
+  const [verConfirmar, setVerConfirmar] = useState(false);
+  const [mensaje, setMensaje] = useState({ texto: '', esError: true });
   const [cargando, setCargando] = useState(false);
   const navigate = useNavigate();
 
   const manejarCambio = async (e) => {
     e.preventDefault();
-    setMensaje('');
+    setMensaje({ texto: '', esError: true });
 
-    // Validación básica de seguridad (USM standards)
     if (nuevaPassword.length < 6) {
-      setMensaje('La contraseña debe tener al menos 6 caracteres.');
+      setMensaje({ texto: 'La contraseña debe tener al menos 6 caracteres.', esError: true });
       return;
     }
 
     if (nuevaPassword !== confirmar) {
-      setMensaje('Las contraseñas no coinciden.');
+      setMensaje({ texto: 'Las contraseñas no coinciden.', esError: true });
       return;
     }
 
     setCargando(true);
 
     try {
-      // Función clave de Supabase para actualizar datos del usuario actual
-      const { error } = await supabase.auth.updateUser({ 
-        password: nuevaPassword 
-      });
+      const { error } = await supabase.auth.updateUser({ password: nuevaPassword });
 
       if (error) throw error;
 
-      setMensaje('¡Contraseña actualizada con éxito! Redirigiendo al login...');
-      
-      // Esperamos 2 segundos para que el usuario lea el mensaje y mandamos al Login
-      setTimeout(() => {
-        navigate('/login');
-      }, 2500);
+      setMensaje({
+        texto: '¡Contraseña actualizada con éxito! Redirigiendo al inicio de sesión...',
+        esError: false,
+      });
 
+      setTimeout(() => {
+        navigate(RUTA_LOGIN);
+      }, 2500);
     } catch (error) {
-      setMensaje('Error al actualizar: ' + error.message);
+      setMensaje({ texto: 'Error al actualizar: ' + error.message, esError: true });
     } finally {
       setCargando(false);
     }
   };
 
   return (
-    <div style={{...estilos.padre, ...estilos.fondoConImagen}}>
-      <form onSubmit={manejarCambio} style={estilos.formulario}>
-        <div style={estilos.cabecera}>
-          <img src={logoPocketwork} alt="Logo" style={estilos.logo} />
-          <h2 style={estilos.titulo}>Nueva Contraseña</h2>
+    <div className="auth-pantalla" style={{ '--imagen-fondo': `url(${imagenDeFondo})` }}>
+      <form onSubmit={manejarCambio} className="auth-tarjeta entrada-fade" noValidate>
+        <div className="auth-cabecera">
+          <img src={logoPocketwork} alt="Logo de Pocketwork" className="auth-logo" />
+          <h2 className="auth-titulo">Nueva contraseña</h2>
+          <p className="auth-subtitulo">Escribe y confirma tu nueva clave de acceso.</p>
         </div>
-        <p style={estilos.texto}>Escribe tu nueva clave de acceso.</p>
-        <input
-          type="password"
-          placeholder="Nueva contraseña"
-          value={nuevaPassword}
-          minLength={6}
-          maxLength={30}
-          onChange={(e) => {
-            const val = e.target.value;
-            if (val.length <= 30) setNuevaPassword(val);
-          }}
-          style={estilos.input}
-          required
-          disabled={cargando}
-        />
-        <input
-          type="password"
-          placeholder="Confirmar contraseña"
-          value={confirmar}
-          minLength={6}
-          maxLength={30}
-          onChange={(e) => {
-            const val = e.target.value;
-            if (val.length <= 30) setConfirmar(val);
-          }}
-          style={estilos.input}
-          required
-          disabled={cargando}
-        />
-        <button 
-          type="submit" 
-          style={cargando ? {...estilos.boton, opacity: 0.6} : estilos.boton}
-          disabled={cargando}
-        >
-          {cargando ? 'Actualizando...' : 'Guardar Nueva Clave'}
-        </button>
-        {mensaje && <p style={estilos.mensaje}>{mensaje}</p>}
+
+        <div className="auth-form">
+          <CampoClave
+            valor={nuevaPassword}
+            alCambiar={(valor) => valor.length <= 30 && setNuevaPassword(valor)}
+            placeholder="Nueva contraseña"
+            visible={verNueva}
+            alternarVisible={() => setVerNueva((v) => !v)}
+            deshabilitado={cargando}
+          />
+
+          <CampoClave
+            valor={confirmar}
+            alCambiar={(valor) => valor.length <= 30 && setConfirmar(valor)}
+            placeholder="Confirmar contraseña"
+            visible={verConfirmar}
+            alternarVisible={() => setVerConfirmar((v) => !v)}
+            deshabilitado={cargando}
+          />
+
+          <button type="submit" className="btn btn-primario btn-bloque" disabled={cargando}>
+            {cargando ? 'Actualizando...' : 'Guardar nueva clave'}
+          </button>
+
+          {mensaje.texto && (
+            <p className={`auth-aviso ${mensaje.esError ? 'peligro' : ''}`}>{mensaje.texto}</p>
+          )}
+        </div>
       </form>
     </div>
   );
-};
-
-const estilos = {
-  padre: { height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' },
-  fondoConImagen: { backgroundImage: `url(${imagenDeFondo})`, backgroundSize: 'cover', backgroundPosition: 'center' },
-  formulario: { backgroundColor: 'rgba(15, 15, 15, 0.92)', padding: '30px 40px', borderRadius: '20px', display: 'flex', flexDirection: 'column', width: '350px', boxShadow: '0 10px 40px rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' },
-  cabecera: { display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '25px' },
-  logo: { width: '180px', height: 'auto', marginBottom: '-15px', filter: 'drop-shadow(0 0 10px rgba(240, 126, 17, 0.3))' },
-  titulo: { color: '#f07e11', fontSize: '32px', fontWeight: 'bold', margin: '0', letterSpacing: '2px', textTransform: 'uppercase' },
-  texto: { color: '#888', marginBottom: '25px', fontSize: '0.9em', textAlign: 'center' },
-  input: { marginBottom: '15px', padding: '14px', fontSize: '16px', borderRadius: '10px', border: '1px solid #444', backgroundColor: '#222', color: '#eee', outline: 'none' },
-  boton: { padding: '14px', backgroundColor: '#f07e11', color: '#000', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '18px', fontWeight: 'bold' },
-  mensaje: { color: '#fff', marginTop: '20px', fontSize: '0.9em', backgroundColor: 'rgba(240, 126, 17, 0.2)', padding: '10px', borderRadius: '8px', textAlign: 'center' }
 };
 
 export default ActualizarPassword;

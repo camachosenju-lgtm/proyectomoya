@@ -1,49 +1,46 @@
 import React from 'react';
+import { CircleAlert, CircleCheck, Info } from 'lucide-react';
+import './estilos.css';
 
-const AlertModal = ({ alerta, setAlerta, perfil }) => {
-  if (!alerta.visible) return null;
+const VARIANTES = {
+  error: { Icono: CircleAlert, clase: 'error', titulo: 'Error', color: 'var(--peligro)' },
+  exito: { Icono: CircleCheck, clase: 'exito', titulo: '¡Éxito!', color: 'var(--marca-400)' },
+  confirm: { Icono: Info, clase: 'aviso', titulo: 'Confirmación', color: 'var(--aviso)' },
+};
+
+// Modal de alerta simple o de confirmación (sí/no).
+// Comparte el mismo lenguaje visual que ModalMensaje.
+const AlertModal = ({ alerta, setAlerta }) => {
+  if (!alerta?.visible) return null;
 
   const esConfirmacion = alerta.tipo === 'confirm';
-  const colorBorde = perfil?.colorPrincipal || '#4a90e2';
+  const { Icono, clase, titulo, color } = VARIANTES[alerta.tipo] || VARIANTES.confirm;
 
   const cerrar = () => setAlerta({ ...alerta, visible: false });
 
+  const confirmar = () => {
+    cerrar();
+    if (typeof alerta.onConfirm === 'function') alerta.onConfirm();
+  };
+
   return (
-    <div className="overlay" onClick={cerrar} style={{ zIndex: 9999 }}>
-      <div 
-        className="modal" 
-        onClick={e => e.stopPropagation()} 
-        style={{ 
-          width: '350px', 
-          height: 'fit-content', 
-          padding: '35px 25px', 
-          textAlign: 'center', 
-          background: '#ffffffff', 
-          border: `1px solid ${colorBorde}`, 
-          boxShadow: `0 10px 40px ${colorBorde}33` 
-        }}
-      >
-        <h2 style={{ color: '#000', marginBottom: '10px' }}>
-          {alerta.tipo === 'error' ? '⚠️ Error' : alerta.tipo === 'exito' ? '✅ Éxito' : 'Aviso'}
-        </h2>
-        <p style={{ color: '#696969ff', marginBottom: '25px', fontSize: '15px' }}>
-          {alerta.mensaje}
-        </p>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '15px' }}>
+    <div className="modal-fondo" role="dialog" aria-modal="true" onClick={cerrar}>
+      <div className="modal-caja" onClick={(e) => e.stopPropagation()}>
+        <Icono size={42} className="icono-modal" style={{ color }} />
+        <h3 className={`modal-titulo ${clase}`}>{alerta.titulo || titulo}</h3>
+        <p className="modal-texto">{alerta.mensaje}</p>
+        <div className="modal-acciones">
           {esConfirmacion ? (
             <>
-              <button onClick={cerrar} className="btnCancelar" style={{ flex: 1 }}>
+              <button type="button" className="btn btn-ghost" onClick={cerrar}>
                 Cancelar
               </button>
-              <button 
-                onClick={() => { cerrar(); alerta.onConfirm && alerta.onConfirm(); }} 
-                className="btnConfirmar" style={{ flex: 1 }}
-              >
+              <button type="button" className="btn btn-primario" onClick={confirmar}>
                 Confirmar
               </button>
             </>
           ) : (
-            <button onClick={cerrar} className="btnConfirmar" style={{ flex: 1 }}>
+            <button type="button" className="btn btn-primario" onClick={cerrar}>
               Entendido
             </button>
           )}

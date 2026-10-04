@@ -1,393 +1,373 @@
-.login-padre {
-  height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  position: relative;
+/* ============================================================
+   Estilos compartidos de las pantallas de autenticación
+   (login, registro, olvido de contraseña, actualizar clave, nosotros).
+   Construidos 100% sobre los tokens de estilos/tema.css.
+   ============================================================ */
+
+:root {
+  --velo-auth: linear-gradient(180deg, rgba(6, 6, 9, 0.86) 0%, rgba(6, 6, 9, 0.95) 100%);
 }
 
-.login-fondoConImagen {
+:root[data-tema='claro'] {
+  --velo-auth: linear-gradient(180deg, rgba(244, 245, 248, 0.9) 0%, rgba(238, 240, 245, 0.97) 100%);
+}
+
+/* ---------- Fondo ---------- */
+.auth-pantalla {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-5);
+  background-image: var(--imagen-fondo);
   background-size: cover;
   background-position: center;
+  background-attachment: fixed;
+  overflow-x: hidden;
 }
 
-.login-formulario {
-  background-color: rgba(15, 15, 15, 0.92);
-  padding: 30px 40px;
-  border-radius: 20px;
-  display: flex;
-  flex-direction: column;
-  width: 350px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(8px);
-}
-
-.login-cabecera {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 25px;
-}
-
-.login-logo {
-  width: 180px;
-  height: auto;
-  margin-bottom: -15px;
-  filter: drop-shadow(0 0 10px rgba(240, 126, 17, 0.3));
-}
-
-.login-titulo {
-  color: #f07e11;
-  font-size: 32px;
-  font-weight: bold;
-  margin: 0;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-}
-
-.login-input {
-  margin-bottom: 15px;
-  padding: 14px;
-  font-size: 16px;
-  border-radius: 10px;
-  border: 2px solid #888;
-  background-color: #222;
-  color: #eee;
-  outline: none;
-}
-
-.login-input:focus {
-  transition: 0.5s;
-  border-color: #f07e11;
-  box-shadow: 0 0 10px #f07e11;
-}
-
-.login-boton {
-  padding: 14px;
-  background-color: #f07e11;
-  color: #000;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  font-size: 18px;
-  font-weight: bold;
-}
-
-.login-boton:hover {
-  transition: 0.5s;
-  background-color: #bf620b;
-  box-shadow: 0 0 10px #f07e11;
-  cursor: pointer;
-}
-
-.login-contenedorLinks {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-
-.login-link {
-  color: #888;
-  text-decoration: none;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.login-link:hover {
-  color: white;
-  transition: 0.5s;
-}
-
-.login-linkSecundario {
-  color: #f07e11;
-  text-decoration: none;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.login-linkSecundario:hover {
-  color: #ffffff;
-  transition: 0.5s;
-}
-
-.login-divisor {
-  height: 1px;
-  background-color: #333;
-  width: 100%;
-}
-
-.login-contenedorAcercaDe {
+.auth-pantalla::before {
+  content: '';
   position: absolute;
-  bottom: 20px;
-  right: 20px;
+  inset: 0;
+  background: var(--velo-auth);
 }
 
-.login-botonAcercaDe {
-  color: #888;
-  text-decoration: none;
-  font-size: 13px;
-  border: 1px solid #444;
-  padding: 5px 15px;
-  border-radius: 15px;
+.auth-pantalla > * {
+  position: relative;
+  z-index: 1;
 }
 
-@keyframes boxBlurIn {
-  from {
-    opacity: 0;
-    filter: blur(15px);
-    transform: scale(0.95);
-  }
-
-  to {
-    opacity: 1;
-    filter: blur(0px);
-    transform: scale(1);
-  }
+/* Variante con scroll libre (pantalla "Nosotros") */
+.auth-pantalla.libre {
+  align-items: flex-start;
+  padding: var(--sp-6) var(--sp-5);
 }
 
-@keyframes boxBlurOut {
-  from {
-    opacity: 1;
-    filter: blur(0px);
-    transform: scale(1);
-  }
-
-  to {
-    opacity: 0;
-    filter: blur(15px);
-    transform: scale(1.05);
-    /* Ligeramente hacia adelante o atrás, probemos 1.05 */
-  }
-}
-
-.fade-in {
-  animation: boxBlurIn 0.45s ease-out forwards;
-}
-
-.fade-out {
-  animation: boxBlurOut 0.4s ease-in forwards;
-}
-
-.login-texto {
-  color: #888;
-  margin-bottom: 25px;
-  font-size: 0.9em;
-  text-align: center;
-}
-
-.login-mensajeExito {
-  color: #fff;
-  margin-bottom: 20px;
-  background-color: rgba(240, 126, 17, 0.2);
-  padding: 10px;
-  border-radius: 8px;
-  text-align: center;
-}
-
-.login-linkCentrado {
-  color: #f07e11;
-  display: block;
-  margin-top: 20px;
-  text-decoration: none;
-  text-align: center;
-}
-
-.login-linkCentrado:hover {
-  color: #ffffff;
-  transition: 0.5s;
-}
-
-/* Estilos de Registro */
-.registro-padre {
-  height: 100vh;
-  width: 100vw;
+/* ---------- Tarjeta ---------- */
+.auth-tarjeta {
+  width: 100%;
+  max-width: 380px;
+  padding: var(--sp-6) var(--sp-6) var(--sp-5);
+  background: var(--vidrio);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-xl);
+  box-shadow: 0 24px 60px var(--sombra-color);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+}
+
+.auth-tarjeta.ancha {
+  max-width: 1060px;
+  text-align: left;
+}
+
+/* ---------- Cabecera ---------- */
+.auth-cabecera {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  overflow: hidden;
+  gap: var(--sp-1);
+  margin-bottom: var(--sp-5);
 }
 
-.registro-tarjeta {
-  background-color: rgba(10, 10, 10, 0.96);
-  padding: 45px 40px;
-  border-radius: 25px;
-  width: 340px;
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(15px);
-  text-align: center;
-  border: 1px solid #333;
-}
-
-.registro-contenedorLogo {
-  margin-bottom: 25px;
-  display: flex;
-  justify-content: center;
-}
-
-.registro-logo {
-  width: 180px;
+.auth-logo {
+  width: 168px;
   height: auto;
-  margin-bottom: -15px;
-  filter: drop-shadow(0 0 10px rgba(240, 126, 17, 0.3));
+  margin-bottom: var(--sp-1);
+  filter: drop-shadow(0 0 12px var(--marca-glow));
 }
 
-.registro-titulo {
-  color: #f07e11;
-  margin-bottom: 25px;
+.auth-titulo {
+  margin: 0;
+  font-size: var(--fs-xl);
+  font-weight: var(--peso-fuerte);
+  letter-spacing: 1px;
+  color: var(--marca-400);
   text-transform: uppercase;
-  font-size: 22px;
 }
 
-.registro-form {
+.auth-subtitulo {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--texto-2);
+  line-height: 1.6;
+}
+
+/* ---------- Formulario ---------- */
+.auth-form {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: var(--sp-4);
+  text-align: left;
 }
 
-.registro-input {
-  margin-bottom: 15px;
-  padding: 14px;
-  font-size: 16px;
-  border-radius: 10px;
-  border: 2px solid #888;
-  background-color: #222;
-  color: #eee;
-  outline: none;
+.auth-form .btn {
+  margin-top: var(--sp-1);
 }
 
-.registro-input:focus {
-  transition: 0.5s;
-  border-color: #f07e11;
-  box-shadow: 0 0 10px rgba(240, 126, 17, 0.3);
-}
-
-.registro-zonaExito {
-  margin-top: 20px;
-}
-
-.registro-mensajeExito {
-  color: #fff;
-  font-size: 0.95em;
-  line-height: 1.5;
-  margin-bottom: 20px;
-}
-
-.registro-mensajeError {
-  color: #f07e11;
-  margin-top: 18px;
-  font-size: 0.9em;
-}
-
-.registro-botonLogin {
-  padding: 10px 20px;
-  border-radius: 8px;
-  border: 1px solid #f07e11;
-  background-color: transparent;
-  color: #f07e11;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.registro-botonLogin:hover {
-  background-color: #f07e11;
-  color: #000;
-  transition: 0.3s;
-}
-
-.registro-footerTexto {
-  color: #888;
-  margin-top: 20px;
-  font-size: 0.9em;
-}
-
-.registro-link {
-  color: #f07e11;
-  text-decoration: none;
-  font-weight: bold;
-}
-
-.registro-link:hover {
-  color: #ffffff;
-  transition: 0.5s;
-}
-
-/* Fix for browser autofill white background */
-.login-input:-webkit-autofill,
-.login-input:-webkit-autofill:focus,
-.login-input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 30px #0000 inset !important;
-  -webkit-text-fill-color: #eee !important;
-  transition: background-color 5000s ease-in-out 0s;
-}
-
-.registro-input:-webkit-autofill,
-.registro-input:-webkit-autofill:focus,
-.registro-input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 30px #181818 inset !important;
-  -webkit-text-fill-color: #fff !important;
-  transition: background-color 5000s ease-in-out 0s;
-}
-
-/* Modal de mensajes */
-.modal-overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  backdrop-filter: blur(5px);
-}
-
-.modal-contenido {
-  background-color: rgba(15, 15, 15, 0.95);
-  padding: 30px 40px;
-  border-radius: 20px;
-  display: flex;
-  flex-direction: column;
-  width: 320px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9);
-  border: 1px solid #444;
+.auth-aviso {
+  margin: 0;
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--radio-sm);
+  font-size: var(--fs-sm);
   text-align: center;
-  animation: zoomIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-}
-
-.modal-titulo-error {
-  color: #ff4d4d;
-  margin-top: 0;
-  margin-bottom: 15px;
-  font-size: 24px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.modal-titulo-exito {
-  color: #f07e11;
-  margin-top: 0;
-  margin-bottom: 15px;
-  font-size: 24px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.modal-texto {
-  color: #ddd;
-  margin-bottom: 25px;
-  font-size: 16px;
   line-height: 1.5;
+  background: var(--acento-suave);
+  border: 1px solid transparent;
+  color: var(--marca-300);
 }
 
-@keyframes zoomIn {
-  from {
-    transform: scale(0.5);
-    opacity: 0;
+:root[data-tema='claro'] .auth-aviso {
+  color: var(--marca-600);
+}
+
+.auth-aviso.peligro {
+  background: rgba(239, 68, 68, 0.14);
+  color: var(--peligro);
+}
+
+/* ---------- Enlaces inferiores ---------- */
+.auth-links {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-top: var(--sp-5);
+}
+
+.auth-link {
+  font-size: var(--fs-sm);
+  color: var(--texto-2);
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  transition: color var(--trans-rapida);
+}
+
+.auth-link:hover {
+  color: var(--texto);
+}
+
+.auth-link-fuerte {
+  font-size: var(--fs-sm);
+  font-weight: var(--peso-medio);
+  color: var(--marca-400);
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  transition: color var(--trans-rapida);
+}
+
+.auth-link-fuerte:hover {
+  color: var(--marca-300);
+}
+
+/* ---------- Botón "Acerca de nosotros" ---------- */
+.boton-acerca {
+  position: fixed;
+  bottom: var(--sp-5);
+  left: var(--sp-5);
+  z-index: 2;
+  padding: 8px 18px;
+  font-size: var(--fs-sm);
+  color: var(--texto-2);
+  background: var(--vidrio);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-pill);
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: all var(--trans-rapida);
+}
+
+.boton-acerca:hover {
+  color: var(--marca-400);
+  border-color: var(--marca-500);
+}
+
+/* ---------- Bloques de contenido (Nosotros) ---------- */
+.bloque-info {
+  padding-bottom: var(--sp-5);
+  margin-bottom: var(--sp-5);
+  border-bottom: 1px solid var(--borde);
+}
+
+.bloque-info:last-of-type {
+  border-bottom: none;
+  margin-bottom: var(--sp-3);
+}
+
+.bloque-info h3 {
+  color: var(--marca-400);
+  font-size: var(--fs-lg);
+  margin-bottom: var(--sp-3);
+}
+
+.bloque-info p {
+  color: var(--texto-2);
+  margin: 0;
+}
+
+.grid-equipo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--sp-3);
+}
+
+.tarjeta-miembro {
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--superficie-2);
+  border: 1px solid var(--borde);
+  border-left: 4px solid var(--marca-500);
+  border-radius: var(--radio-sm);
+  font-size: var(--fs-sm);
+  font-weight: var(--peso-medio);
+  color: var(--texto);
+  transition: all var(--trans-rapida);
+}
+
+.tarjeta-miembro:hover {
+  border-left-color: var(--marca-300);
+  background: var(--superficie-3);
+  transform: translateX(4px);
+}
+
+.facultad {
+  margin-top: var(--sp-4);
+  padding: var(--sp-3);
+  text-align: center;
+  font-size: var(--fs-sm);
+  font-weight: var(--peso-medio);
+  letter-spacing: 0.5px;
+  color: var(--marca-400);
+  border: 1px dashed var(--marca-500);
+  border-radius: var(--radio-sm);
+  background: var(--acento-suave);
+}
+
+.frase-final {
+  text-align: center;
+  font-style: italic;
+  color: var(--texto-3);
+  font-size: var(--fs-sm);
+}
+
+/* ---------- Notificaciones (misma tarjeta auth + tokens) ---------- */
+.notif-lista {
+  display: flex;
+  flex-direction: column;
+  max-height: 480px;
+  overflow-y: auto;
+  padding-right: var(--sp-1);
+}
+
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-4);
+  padding: var(--sp-4) var(--sp-2);
+  border-bottom: 1px solid var(--borde);
+}
+
+.notif-item:last-child {
+  border-bottom: none;
+}
+
+.notif-texto {
+  margin: 0 0 4px;
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  color: var(--texto);
+  overflow-wrap: anywhere;
+}
+
+.notif-proyecto {
+  margin: 0 0 4px;
+  font-size: var(--fs-sm);
+}
+
+/* Estado vacío compartido para pantallas sin perfil.css */
+.estado-vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-7);
+  text-align: center;
+  color: var(--texto-3);
+  border: 1px dashed var(--borde-fuerte);
+  border-radius: var(--radio-lg);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 640px) {
+  .auth-tarjeta {
+    padding: var(--sp-5) var(--sp-4);
   }
-  to {
-    transform: scale(1);
-    opacity: 1;
+
+  .auth-logo {
+    width: 140px;
   }
+
+  .boton-acerca {
+    bottom: var(--sp-3);
+    left: var(--sp-3);
+  }
+}
+/* ---------- Campos con icono y ojo de contraseña ---------- */
+.campo-password {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.campo-con-icono {
+  padding-left: 44px;
+}
+
+.campo-con-ojo {
+  padding-right: 48px;
+}
+
+.icono-campo {
+  position: absolute;
+  left: 15px;
+  color: var(--texto-3);
+  pointer-events: none;
+  transition: color var(--trans-rapida);
+}
+
+.campo-password:focus-within .icono-campo {
+  color: var(--marca-400);
+}
+
+.boton-ojo {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radio-pill);
+  background: transparent;
+  color: var(--texto-3);
+  cursor: pointer;
+  transition: color var(--trans-rapida), background var(--trans-rapida);
+}
+
+.boton-ojo:hover {
+  color: var(--marca-400);
+  background: var(--superficie-3);
 }
