@@ -17,6 +17,7 @@ const PerfilPublico = () => {
   const [obras, setObras] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [miId, setMiId] = useState(null);
+  const [puedeVerExplicito, setPuedeVerExplicito] = useState(false);
 
   const [proyectoSeleccionado, setProyectoSeleccionado] = useState(null);
   const [comentarios, setComentarios] = useState([]);
@@ -60,6 +61,7 @@ const PerfilPublico = () => {
           puedeVerExplicito = perfilVisitante?.tipo_cuenta === 'adulto';
         }
       }
+      setPuedeVerExplicito(puedeVerExplicito);
 
       const { data: dataPerfil } = await supabase
         .from('perfiles').select('*').eq('id', idUsuario).single();
@@ -162,10 +164,12 @@ const PerfilPublico = () => {
       return;
     }
 
-    const moderacion = await moderador.validarTexto(nuevoComentario.trim());
-    if (!moderacion.seguro) {
-      avisar(moderacion.razon || 'Contenido inapropiado detectado.', 'error', 'Comentario bloqueado');
-      return;
+    if (!(puedeVerExplicito && proyectoSeleccionado?.es_nsfw === true)) {
+      const moderacion = await moderador.validarTexto(nuevoComentario.trim());
+      if (!moderacion.seguro) {
+        avisar(moderacion.razon || 'Contenido inapropiado detectado.', 'error', 'Comentario bloqueado');
+        return;
+      }
     }
 
     setEnviandoComentario(true);
@@ -195,10 +199,12 @@ const PerfilPublico = () => {
       return;
     }
 
-    const moderacionRespuesta = await moderador.validarTexto(textoRespuesta.trim());
-    if (!moderacionRespuesta.seguro) {
-      avisar('Contiene contenido inapropiado.', 'error', 'Respuesta bloqueada');
-      return;
+    if (!(puedeVerExplicito && proyectoSeleccionado.es_nsfw === true)) {
+      const moderacionRespuesta = await moderador.validarTexto(textoRespuesta.trim());
+      if (!moderacionRespuesta.seguro) {
+        avisar('Contiene contenido inapropiado.', 'error', 'Respuesta bloqueada');
+        return;
+      }
     }
 
     const { error } = await supabase.from('comentarios').insert([{
@@ -240,10 +246,12 @@ const PerfilPublico = () => {
       return;
     }
 
-    const resultadoModeracion = await moderador.validarTexto(textoParaValidar);
-    if (!resultadoModeracion.seguro) {
-      avisar(resultadoModeracion.razon || 'Contenido inapropiado.', 'error', 'Comentario bloqueado');
-      return;
+    if (!(puedeVerExplicito && proyectoSeleccionado?.es_nsfw === true)) {
+      const resultadoModeracion = await moderador.validarTexto(textoParaValidar);
+      if (!resultadoModeracion.seguro) {
+        avisar(resultadoModeracion.razon || 'Contenido inapropiado.', 'error', 'Comentario bloqueado');
+        return;
+      }
     }
 
     const { error } = await supabase

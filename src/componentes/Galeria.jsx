@@ -93,7 +93,7 @@ const Galeria = () => {
       let query = supabase
         .from('proyectos')
         .select(`
-          id, titulo, archivo_url, tipo_archivo, usuario_id, creado_el,
+          id, titulo, archivo_url, tipo_archivo, usuario_id, creado_el, es_nsfw,
           perfiles!inner ( nombre_completo, avatar_url ),
           likes ( usuario_id ),
           comentarios (count)
@@ -175,10 +175,12 @@ const Galeria = () => {
       return;
     }
 
-    const moderacion = await moderador.validarTexto(nuevoComentario.trim());
-    if (!moderacion.seguro) {
-      avisar(moderacion.razon || 'Contenido inapropiado detectado.', 'error', 'Comentario bloqueado');
-      return;
+    if (!(puedeVerExplicito && proyectoSeleccionado.es_nsfw === true)) {
+      const moderacion = await moderador.validarTexto(nuevoComentario.trim());
+      if (!moderacion.seguro) {
+        avisar(moderacion.razon || 'Contenido inapropiado detectado.', 'error', 'Comentario bloqueado');
+        return;
+      }
     }
 
     setEnviandoComentario(true);
@@ -209,10 +211,12 @@ const Galeria = () => {
       return;
     }
 
-    const moderacionRespuesta = await moderador.validarTexto(textoRespuesta.trim());
-    if (!moderacionRespuesta.seguro) {
-      avisar('Contiene contenido inapropiado.', 'error', 'Respuesta bloqueada');
-      return;
+    if (!(puedeVerExplicito && proyectoSeleccionado.es_nsfw === true)) {
+      const moderacionRespuesta = await moderador.validarTexto(textoRespuesta.trim());
+      if (!moderacionRespuesta.seguro) {
+        avisar('Contiene contenido inapropiado.', 'error', 'Respuesta bloqueada');
+        return;
+      }
     }
 
     const { error } = await supabase.from('comentarios').insert({
@@ -247,10 +251,12 @@ const Galeria = () => {
       return;
     }
 
-    const resultadoModeracion = await moderador.validarTexto(contenido.trim());
-    if (!resultadoModeracion.seguro) {
-      avisar(resultadoModeracion.razon || 'Contenido inapropiado.', 'error', 'Comentario bloqueado');
-      return;
+    if (!(puedeVerExplicito && proyectoSeleccionado?.es_nsfw === true)) {
+      const resultadoModeracion = await moderador.validarTexto(contenido.trim());
+      if (!resultadoModeracion.seguro) {
+        avisar(resultadoModeracion.razon || 'Contenido inapropiado.', 'error', 'Comentario bloqueado');
+        return;
+      }
     }
 
     const { error } = await supabase

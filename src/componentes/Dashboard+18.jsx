@@ -4,8 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import { validarPerfil, validarProyecto } from './validaciones';
 import { moderador } from './moderacion';
 import '../estilos/perfil.css';
-import { esFondoClaro } from './temasPerfil';
-import { Menu, User, Image as ImageIcon, ImagePlus, Activity, LogOut, Heart, MessageCircle, Trash2, Pencil, Save, X, Send, Palette, Settings, Inbox, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  TEMAS_PERFIL,
+  TEMA_POR_DEFECTO_ID,
+  buscarTemaPerfil,
+  detectarTemaPerfil,
+  esFondoClaro,
+} from './temasPerfil';
+import { Menu, User, Image as ImageIcon, ImagePlus, Activity, LogOut, Heart, MessageCircle, Trash2, Pencil, Save, X, Send, Palette, Settings, Inbox, RotateCcw, ChevronLeft, ChevronRight, Eye, Trophy } from 'lucide-react';
 
 
 const STORAGE_KEY_NOTIF_LEIDAS = 'pocketwork_notificaciones_leidas';
@@ -141,12 +147,22 @@ const Dashboard = ({ alCerrarSesion }) => {
     colorLetraNombre: '#ffffff',
     colorLetraBio: '#e6e6ec',
     avatarUrl: null,
-    imagenFondoUrl: null
+    imagenFondoUrl: null,
+    disponible: false,
+    area: '',
+    contacto: ''
+  });
+  const perfilTextoGuardadoRef = useRef({
+    nombre: 'Cargando...',
+    bio: 'Artista ✨',
+    area: '',
+    contacto: '',
   });
   const [plantillaEnVistaPrevia, setPlantillaEnVistaPrevia] = useState(null);
   const carruselPlantillasRef = useRef(null);
 
   const [obras, setObras] = useState([]);
+  const [misNumeros, setMisNumeros] = useState({ vistas: 0, likes: 0, comentarios: 0, top: [] });
   const [nuevaObra, setNuevaObra] = useState({ titulo: '', descripcion: '', imagenUrl: '' });
   const [contenidoExplicito, setContenidoExplicito] = useState(false);
   const [cargando, setCargando] = useState(false);
@@ -280,6 +296,48 @@ const Dashboard = ({ alCerrarSesion }) => {
     }
   };
 
+  useEffect(() => {
+    const cargarNumeros = async () => {
+      if (obras.length === 0) {
+        setMisNumeros({ vistas: 0, likes: 0, comentarios: 0, top: [] });
+        return;
+      }
+
+      const ids = obras.map((obra) => obra.id);
+      const { data: vistas, error } = await supabase
+        .from('vistas')
+        .select('proyecto_id')
+        .in('proyecto_id', ids);
+
+      if (error) {
+        console.error('Error cargando estadísticas de vistas:', error.message);
+        return;
+      }
+
+      const vistasPorObra = {};
+      (vistas || []).forEach((vista) => {
+        vistasPorObra[vista.proyecto_id] = (vistasPorObra[vista.proyecto_id] || 0) + 1;
+      });
+      const likes = obras.reduce((total, obra) => total + Number(obra.totalLikes || 0), 0);
+      const comentarios = obras.reduce(
+        (total, obra) => total + Number(obra.comentarios?.[0]?.count || 0),
+        0
+      );
+      const top = [...obras]
+        .sort((a, b) => (vistasPorObra[b.id] || 0) - (vistasPorObra[a.id] || 0))
+        .slice(0, 3)
+        .map((obra) => ({
+          id: obra.id,
+          titulo: obra.titulo,
+          vistas: vistasPorObra[obra.id] || 0
+        }));
+
+      setMisNumeros({ vistas: (vistas || []).length, likes, comentarios, top });
+    };
+
+    cargarNumeros();
+  }, [obras]);
+
   const formatearNotificacion = (comentario) => {
     const obra = obras.find(o => o.id === comentario.proyecto_id);
     const nombreObra = obra ? obra.titulo : 'tu publicación';
@@ -397,6 +455,14 @@ const Dashboard = ({ alCerrarSesion }) => {
       return;
     }
 
+    if (proyectoSeleccionado.es_nsfw !== true) {
+      const moderacion = await moderador.validarTexto(nuevoComentario.trim());
+      if (!moderacion.seguro) {
+        alert(moderacion.razon || 'Contenido inapropiado detectado. No se pudo publicar el comentario.');
+        return;
+      }
+    }
+
     setEnviandoComentario(true);
     const { error } = await supabase
       .from('comentarios')
@@ -428,6 +494,14 @@ const Dashboard = ({ alCerrarSesion }) => {
     if (textoRespuesta.trim().length > 100) {
       alert('⚠️ El comentario es demasiado largo (máximo 100 caracteres).');
       return;
+    }
+
+    if (proyectoSeleccionado.es_nsfw !== true) {
+      const moderacion = await moderador.validarTexto(textoRespuesta.trim());
+      if (!moderacion.seguro) {
+        alert(moderacion.razon || 'Contenido inapropiado detectado. No se pudo publicar la respuesta.');
+        return;
+      }
     }
 
     const { data, error } = await supabase
@@ -463,6 +537,13 @@ const Dashboard = ({ alCerrarSesion }) => {
     }
 
     const textoParaValidar = contenido.trim();
+    if (proyectoSeleccionado?.es_nsfw !== true) {
+      const moderacion = await moderador.validarTexto(textoParaValidar);
+      if (!moderacion.seguro) {
+        alert(moderacion.razon || 'Contenido inapropiado detectado. No se pudo actualizar el comentario.');
+        return;
+      }
+    }
 
     const { data, error } = await supabase
       .from('comentarios')
@@ -545,7 +626,7 @@ const Dashboard = ({ alCerrarSesion }) => {
     }
 
     if (data) {
-      setPerfil({
+      const perfilCargado = {
         nombre: data.nombre_completo || '',
         bio: data.biografia || '',
         colorPrincipal: data.color_principal || '#f07e11',
@@ -554,8 +635,18 @@ const Dashboard = ({ alCerrarSesion }) => {
         colorLetraNombre: data.color_letra_nombre || '#ffffff',
         colorLetraBio: data.color_letra_bio || '#e6e6ec',
         avatarUrl: data.avatar_url,
-        imagenFondoUrl: data.imagen_fondo_url
-      });
+        imagenFondoUrl: data.imagen_fondo_url,
+        disponible: !!data.disponible_trabajo,
+        area: data.area_trabajo || '',
+        contacto: data.contacto_trabajo || ''
+      };
+      setPerfil(perfilCargado);
+      perfilTextoGuardadoRef.current = {
+        nombre: perfilCargado.nombre,
+        bio: perfilCargado.bio,
+        area: perfilCargado.area,
+        contacto: perfilCargado.contacto,
+      };
     }
     return data;
   };
@@ -587,7 +678,6 @@ const Dashboard = ({ alCerrarSesion }) => {
   // BOTÓN GUARDAR: Ahora solo para Textos y Colores
 
   const guardarCambiosPerfil = async () => {
-    // 1. Ejecutamos la validación (Nombre máx 25, Bio máx 150)
     const resultado = validarPerfil(perfil);
 
     if (!resultado.valido) {
@@ -596,37 +686,81 @@ const Dashboard = ({ alCerrarSesion }) => {
       return;
     }
 
-    if (!usuario) return alert("Espera a que cargue tu sesión...");
-    setCargando(true);
-
-    const datosParaDB = {
-      id: usuario.id,
-      nombre_completo: perfil.nombre,
-      biografia: perfil.bio,
-      color_principal: perfil.colorPrincipal,
-      color_secundario: perfil.colorSecundario,
-      color_fondo_web: perfil.colorFondoWeb,
-      imagen_fondo_url: perfil.imagenFondoUrl,
-      color_letra_nombre: perfil.colorLetraNombre,
-      color_letra_bio: perfil.colorLetraBio
-    };
-
-    const { error: errorPerfil } = await supabase
-      .from('perfiles')
-      .upsert(datosParaDB, { onConflict: 'id' });
-
-    if (errorPerfil) {
-      console.error('Error guardando perfil:', errorPerfil);
-      if (errorPerfil.code === '23505') {
-        alert('❌ Este nombre de usuario ya está en uso. Por favor, elige otro.');
-      } else {
-        alert('❌ Error guardando perfil: ' + errorPerfil.message);
-      }
-    } else {
-      alert('✅ ¡Información actualizada!');
+    if (!usuario) {
+      alert("Espera a que cargue tu sesión...");
+      return;
     }
 
-    setCargando(false);
+    setCargando(true);
+    try {
+      const textosParaModeracion = [
+        { clave: 'nombre', etiqueta: 'Nombre', texto: perfil.nombre },
+        { clave: 'bio', etiqueta: 'Biografía', texto: perfil.bio },
+        { clave: 'area', etiqueta: 'Área de trabajo', texto: perfil.area },
+        { clave: 'contacto', etiqueta: 'Contacto', texto: perfil.contacto }
+      ];
+
+      for (const campo of textosParaModeracion) {
+        const moderacion = await moderador.validarTexto(campo.texto.trim());
+        if (!moderacion.seguro) campo.rechazado = true;
+      }
+
+      const camposRechazados = textosParaModeracion.filter((campo) => campo.rechazado);
+      if (camposRechazados.length > 0) {
+        const valoresGuardados = perfilTextoGuardadoRef.current;
+        setPerfil((actual) => ({
+          ...actual,
+          ...Object.fromEntries(
+            camposRechazados.map(({ clave }) => [clave, valoresGuardados[clave]])
+          ),
+        }));
+        alert(
+          `❌ Contenido inapropiado en: ${camposRechazados.map(({ etiqueta }) => etiqueta).join(', ')}. Se restauraron los valores guardados.`
+        );
+        return;
+      }
+
+      const datosParaDB = {
+        id: usuario.id,
+        nombre_completo: perfil.nombre,
+        biografia: perfil.bio,
+        color_principal: perfil.colorPrincipal,
+        color_secundario: perfil.colorSecundario,
+        color_fondo_web: perfil.colorFondoWeb,
+        imagen_fondo_url: perfil.imagenFondoUrl,
+        color_letra_nombre: perfil.colorLetraNombre,
+        color_letra_bio: perfil.colorLetraBio,
+        disponible_trabajo: perfil.disponible,
+        area_trabajo: perfil.area.trim() || null,
+        contacto_trabajo: perfil.contacto.trim() || null
+      };
+
+      const { error: errorPerfil } = await supabase
+        .from('perfiles')
+        .upsert(datosParaDB, { onConflict: 'id' });
+
+      if (errorPerfil) {
+        console.error('Error guardando perfil:', errorPerfil);
+        if (errorPerfil.code === '23505') {
+          alert('❌ Este nombre de usuario ya está en uso. Por favor, elige otro.');
+        } else {
+          alert('❌ Error guardando perfil: ' + errorPerfil.message);
+        }
+      } else {
+        perfilTextoGuardadoRef.current = {
+          nombre: perfil.nombre,
+          bio: perfil.bio,
+          area: perfil.area,
+          contacto: perfil.contacto,
+        };
+        alert('✅ ¡Información actualizada!');
+      }
+    } catch (error) {
+      console.error('Error moderando o guardando el perfil:', error);
+      alert('❌ No se pudieron moderar o guardar los cambios del perfil. Inténtalo de nuevo.');
+    } finally {
+      setCargando(false);
+    }
   };
 
   const prepararArchivoProyecto = async (event) => {
@@ -845,7 +979,35 @@ const Dashboard = ({ alCerrarSesion }) => {
     return perfil.colorFondoWeb || perfil.colorPrincipal;
   };
 
+  const temaActivoId = detectarTemaPerfil(perfil);
   const cabeceraClara = !perfil.imagenFondoUrl && esFondoClaro(perfil.colorFondoWeb);
+
+  const aplicarTema = (temaId) => {
+    const tema = buscarTemaPerfil(temaId);
+    if (!tema) return;
+    setPerfil((prev) => ({
+      ...prev,
+      colorPrincipal: tema.colorPrincipal,
+      colorFondoWeb: tema.colorFondoWeb,
+      colorLetraNombre: tema.colorLetraNombre,
+      colorLetraBio: tema.colorLetraBio,
+    }));
+  };
+
+  const quitarBanner = () => setPerfil((prev) => ({ ...prev, imagenFondoUrl: null }));
+
+  const restablecerTema = () => {
+    const tema = buscarTemaPerfil(TEMA_POR_DEFECTO_ID);
+    if (!tema) return;
+    setPerfil((prev) => ({
+      ...prev,
+      colorPrincipal: tema.colorPrincipal,
+      colorFondoWeb: tema.colorFondoWeb,
+      colorLetraNombre: tema.colorLetraNombre,
+      colorLetraBio: tema.colorLetraBio,
+      imagenFondoUrl: null,
+    }));
+  };
 
   const aplicarPlantilla = (numero) => {
     const url = `/imagenes/plantillas/textura${numero}.png`;
@@ -928,6 +1090,13 @@ const Dashboard = ({ alCerrarSesion }) => {
               </button>
               <button
                 type="button"
+                onClick={() => { setMenuAbierto(false); navigate('/retos'); }}
+                className="dash-menu-item"
+              >
+                <Trophy size={18} /> Retos
+              </button>
+              <button
+                type="button"
                 onClick={() => { setMenuAbierto(false); navigate('/notificaciones'); }}
                 className="dash-menu-item"
               >
@@ -967,6 +1136,210 @@ const Dashboard = ({ alCerrarSesion }) => {
       </div>
 
       <div className="dash-panel">
+        <h4 className="dash-panel-titulo">
+          <Settings size={20} /> Personalizar mi espacio
+        </h4>
+
+        <div className="dash-fila">
+          <div className="dash-grupo">
+            <span className="dash-etiqueta">Foto de perfil</span>
+            <label htmlFor="upload-avatar" className="btn btn-secundario cursor-pointer">
+              <ImagePlus size={16} /> Elegir foto
+            </label>
+            <input
+              id="upload-avatar"
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                setAvatarError(false);
+                subirImagen(e, 'Avatares', 'avatar_url', 'avatarUrl');
+              }}
+              className="oculto"
+            />
+          </div>
+          <label className="dash-grupo">
+            <span className="dash-etiqueta">Nombre de usuario</span>
+            <input
+              type="text"
+              maxLength={25}
+              className="campo"
+              placeholder="Nombre de usuario"
+              value={perfil.nombre}
+              onChange={(e) => setPerfil({ ...perfil, nombre: e.target.value })}
+            />
+          </label>
+          <label className="dash-grupo">
+            <span className="dash-etiqueta">Biografía</span>
+            <textarea
+              maxLength={150}
+              className="campo"
+              placeholder="Describe tu perfil..."
+              value={perfil.bio}
+              onChange={(e) => setPerfil({ ...perfil, bio: e.target.value })}
+            />
+          </label>
+        </div>
+
+        <div className="dash-fila">
+          <div className="dash-grupo dash-grupo-ancho">
+            <span className="dash-etiqueta">Tema de mi cabecera</span>
+            <div className="dash-temas">
+              {TEMAS_PERFIL.map((tema) => (
+                <button
+                  key={tema.id}
+                  type="button"
+                  className={`dash-tema ${temaActivoId === tema.id ? 'seleccionado' : ''}`}
+                  onClick={() => aplicarTema(tema.id)}
+                  title={tema.nombre}
+                  aria-pressed={temaActivoId === tema.id}
+                >
+                  <span className="dash-tema-muestras" aria-hidden="true">
+                    <span style={{ background: tema.colorFondoWeb }} />
+                    <span style={{ background: tema.colorPrincipal }} />
+                  </span>
+                  {tema.nombre}
+                </button>
+              ))}
+            </div>
+            {!temaActivoId && <span className="badge">Acento personalizado</span>}
+          </div>
+
+          <div className="dash-grupo-color">
+            <span className="dash-etiqueta">Marco</span>
+            <input
+              type="color"
+              value={perfil.colorPrincipal}
+              className="dash-color"
+              title="Ajusta solo el color de acento"
+              onChange={(e) => setPerfil({ ...perfil, colorPrincipal: e.target.value })}
+            />
+          </div>
+
+          <div className="dash-grupo">
+            <span className="dash-etiqueta">Banner</span>
+            <div className="fila">
+              <label htmlFor="upload-fondo" className="btn btn-secundario cursor-pointer">
+                <ImagePlus size={16} /> Elegir fondo
+              </label>
+              {perfil.imagenFondoUrl && (
+                <button type="button" className="btn btn-ghost" onClick={quitarBanner}>
+                  Quitar
+                </button>
+              )}
+            </div>
+            <input
+              id="upload-fondo"
+              type="file"
+              accept="image/*"
+              onChange={(e) => subirImagen(e, 'Fondos', 'imagen_fondo_url', 'imagenFondoUrl')}
+              className="oculto"
+            />
+          </div>
+
+          <div className="dash-grupo dash-grupo-ancho">
+            <span className="dash-etiqueta">Plantillas (elige una para la vista previa)</span>
+            <div style={{ position: 'relative' }} onMouseLeave={() => setPlantillaEnVistaPrevia(null)}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  type="button"
+                  aria-label="Ver plantillas anteriores"
+                  className="btn btn-ghost"
+                  onClick={() => carruselPlantillasRef.current?.scrollBy({ left: -240, behavior: 'smooth' })}
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                <div
+                  ref={carruselPlantillasRef}
+                  onWheel={(e) => {
+                    if (carruselPlantillasRef.current) {
+                      e.preventDefault();
+                      carruselPlantillasRef.current.scrollLeft += e.deltaY || e.deltaX;
+                    }
+                  }}
+                  style={{
+                    display: 'flex',
+                    flex: 1,
+                    gap: '8px',
+                    overflowX: 'auto',
+                    padding: '8px 4px',
+                    scrollBehavior: 'smooth',
+                    WebkitOverflowScrolling: 'touch',
+                    scrollbarWidth: 'thin',
+                    touchAction: 'pan-x'
+                  }}
+                >
+                  {PLANTILLAS_DISPONIBLES.map((url, index) => (
+                    <button
+                      key={url}
+                      type="button"
+                      className={`dash-plantilla ${perfil.imagenFondoUrl === url ? 'seleccionado' : ''}`}
+                      title={`Plantilla ${index + 1}`}
+                      aria-label={`Seleccionar plantilla ${index + 1}`}
+                      onMouseEnter={() => setPlantillaEnVistaPrevia(index + 1)}
+                      onFocus={() => setPlantillaEnVistaPrevia(index + 1)}
+                      onBlur={() => setPlantillaEnVistaPrevia(null)}
+                      onClick={() => aplicarPlantilla(index + 1)}
+                    >
+                      <img src={url} alt="" loading="lazy" />
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  aria-label="Ver plantillas siguientes"
+                  className="btn btn-ghost"
+                  onClick={() => carruselPlantillasRef.current?.scrollBy({ left: 240, behavior: 'smooth' })}
+                >
+                  <ChevronRight size={18} />
+                </button>
+              </div>
+              <div
+                aria-hidden={!plantillaEnVistaPrevia}
+                style={{
+                  position: 'absolute',
+                  zIndex: 5,
+                  left: '50%',
+                  bottom: 'calc(100% + 8px)',
+                  width: 'min(260px, 70vw)',
+                  height: '150px',
+                  borderRadius: '14px',
+                  overflow: 'hidden',
+                  background: 'var(--superficie)',
+                  border: '2px solid var(--borde-fuerte)',
+                  boxShadow: '0 12px 30px rgba(0,0,0,0.35)',
+                  opacity: plantillaEnVistaPrevia ? 1 : 0,
+                  visibility: plantillaEnVistaPrevia ? 'visible' : 'hidden',
+                  transform: plantillaEnVistaPrevia ? 'translateX(-50%) scale(1)' : 'translateX(-50%) scale(0.96)',
+                  transition: 'opacity 180ms ease, transform 220ms ease, visibility 220ms ease',
+                  pointerEvents: 'none'
+                }}
+              >
+                {plantillaEnVistaPrevia && (
+                  <img
+                    src={PLANTILLAS_DISPONIBLES[plantillaEnVistaPrevia - 1]}
+                    alt={`Vista previa de la plantilla ${plantillaEnVistaPrevia}`}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button type="button" className="btn btn-exito" onClick={guardarCambiosPerfil}>
+          <Save size={16} /> Guardar cambios
+        </button>
+        <button
+          type="button"
+          className="btn btn-ghost"
+          onClick={restablecerTema}
+          title="Volver al tema Pocketwork sin banner"
+        >
+          <RotateCcw size={16} /> Restablecer tema
+        </button>
+      </div>
+
+      {false && <div className="dash-panel">
         <h4 className="dash-panel-titulo"><Settings size={20} /> Personalizar mi espacio</h4>
         <div className="dash-fila">
             <div className="dash-grupo">
@@ -1211,6 +1584,66 @@ const Dashboard = ({ alCerrarSesion }) => {
         </div>
 
         <button type="button" className="btn btn-exito" onClick={guardarCambiosPerfil}><Save size={16} /> Guardar cambios</button>
+      </div>}
+
+      <div className="dash-panel">
+        <h4 className="dash-panel-titulo">
+          <Settings size={20} /> Perfil laboral
+        </h4>
+        <div className="dash-fila">
+          <label className="fila cursor-pointer">
+            <input
+              type="checkbox"
+              checked={perfil.disponible}
+              onChange={(e) => setPerfil({ ...perfil, disponible: e.target.checked })}
+            />
+            <span className="dash-etiqueta">Disponible para trabajar</span>
+          </label>
+          <div className="dash-grupo">
+            <span className="dash-etiqueta">Área (ej. Diseño, Foto, Video)</span>
+            <input
+              type="text"
+              maxLength={40}
+              className="campo"
+              placeholder="¿En qué trabajas?"
+              value={perfil.area}
+              onChange={(e) => setPerfil({ ...perfil, area: e.target.value })}
+            />
+          </div>
+          <div className="dash-grupo">
+            <span className="dash-etiqueta">Contacto (correo o red)</span>
+            <input
+              type="text"
+              maxLength={60}
+              className="campo"
+              placeholder="¿Cómo te contactan?"
+              value={perfil.contacto}
+              onChange={(e) => setPerfil({ ...perfil, contacto: e.target.value })}
+            />
+          </div>
+        </div>
+        <p className="texto-3 texto-auxiliar">Se muestra en tu perfil público. Recuerda pulsar "Guardar cambios".</p>
+      </div>
+
+      <div className="dash-panel">
+        <h4 className="dash-panel-titulo">
+          <Eye size={20} /> Mis números
+        </h4>
+        <div className="fila">
+          <span className="dash-stat"><Eye size={14} /> {misNumeros.vistas} vistas</span>
+          <span className="dash-stat"><Heart size={14} /> {misNumeros.likes} likes</span>
+          <span className="dash-stat"><MessageCircle size={14} /> {misNumeros.comentarios} comentarios</span>
+        </div>
+        {misNumeros.top.length > 0 && (
+          <div className="columna mt-3">
+            {misNumeros.top.map((obra) => (
+              <div key={obra.id} className="fila-entre">
+                <span className="crecer">{obra.titulo}</span>
+                <span className="badge">{obra.vistas} vistas</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="dash-publicar">

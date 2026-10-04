@@ -232,6 +232,12 @@ const Dashboard = () => {
     contacto: '',
     esAdmin: false,
   });
+  const perfilTextoGuardadoRef = useRef({
+    nombre: 'Cargando...',
+    bio: 'Artista',
+    area: '',
+    contacto: '',
+  });
   const [plantillaEnVistaPrevia, setPlantillaEnVistaPrevia] = useState(null);
   const carruselPlantillasRef = useRef(null);
 
@@ -628,7 +634,7 @@ const Dashboard = () => {
     if (error) return;
 
     if (data) {
-      setPerfil({
+      const perfilCargado = {
         nombre: data.nombre_completo || '',
         bio: data.biografia || '',
         colorPrincipal: data.color_principal || '#f07e11',
@@ -641,7 +647,14 @@ const Dashboard = () => {
         area: data.area_trabajo || '',
         contacto: data.contacto_trabajo || '',
         esAdmin: data.tipo_cuenta === 'admin',
-      });
+      };
+      setPerfil(perfilCargado);
+      perfilTextoGuardadoRef.current = {
+        nombre: perfilCargado.nombre,
+        bio: perfilCargado.bio,
+        area: perfilCargado.area,
+        contacto: perfilCargado.contacto,
+      };
     }
   };
 
@@ -667,20 +680,36 @@ const Dashboard = () => {
       return;
     }
 
-    const moderacionNombre = await moderador.validarTexto(perfil.nombre || '');
-    if (!moderacionNombre.seguro) {
-      avisar('Nombre bloqueado: contenido inapropiado detectado.', 'error');
-      return;
-    }
-
-    const moderacionBio = await moderador.validarTexto(perfil.bio || '');
-    if (!moderacionBio.seguro) {
-      avisar('Biografía bloqueada: contenido inapropiado detectado.', 'error');
-      return;
-    }
-
     if (!usuario) {
       avisar('Espera a que cargue tu sesión...', 'info');
+      return;
+    }
+
+    const camposTexto = [
+      { clave: 'nombre', etiqueta: 'Nombre' },
+      { clave: 'bio', etiqueta: 'Biografía' },
+      { clave: 'area', etiqueta: 'Área de trabajo' },
+      { clave: 'contacto', etiqueta: 'Contacto' },
+    ];
+    const camposRechazados = [];
+
+    for (const campo of camposTexto) {
+      const moderacion = await moderador.validarTexto(perfil[campo.clave] || '');
+      if (!moderacion.seguro) camposRechazados.push(campo);
+    }
+
+    if (camposRechazados.length > 0) {
+      const valoresGuardados = perfilTextoGuardadoRef.current;
+      setPerfil((actual) => ({
+        ...actual,
+        ...Object.fromEntries(
+          camposRechazados.map(({ clave }) => [clave, valoresGuardados[clave]])
+        ),
+      }));
+      avisar(
+        `Contenido inapropiado en: ${camposRechazados.map(({ etiqueta }) => etiqueta).join(', ')}. Se restauraron los valores guardados.`,
+        'error'
+      );
       return;
     }
 
@@ -713,6 +742,12 @@ const Dashboard = () => {
         avisar('Error guardando perfil: ' + errorPerfil.message, 'error');
       }
     } else {
+      perfilTextoGuardadoRef.current = {
+        nombre: perfil.nombre,
+        bio: perfil.bio,
+        area: perfil.area,
+        contacto: perfil.contacto,
+      };
       avisar('¡Información actualizada!', 'exito');
     }
 
