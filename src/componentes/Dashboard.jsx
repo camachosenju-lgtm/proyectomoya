@@ -1,17 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import { validarPerfil, validarProyecto } from './validaciones';
 import { moderador } from './moderacion';
+import '../estilos/perfil.css';
 import {
   TEMAS_PERFIL,
   TEMA_POR_DEFECTO_ID,
   buscarTemaPerfil,
   detectarTemaPerfil,
   esFondoClaro,
-  PLANTILLAS_FONDO,
 } from './temasPerfil';
-import '../estilos/perfil.css';
 import {
   Menu,
   User,
@@ -34,10 +33,13 @@ import {
   ShieldAlert,
   Eye,
   Flag,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import AlertModal from './AlertModal';
 
 const STORAGE_KEY_NOTIF_LEIDAS = 'pocketwork_notificaciones_leidas';
+const PLANTILLAS_DISPONIBLES = Array.from({ length: 50 }, (_, index) => `/imagenes/plantillas/textura${index + 1}.png`);
 
 // Comentario con soporte de respuestas anidadas (se renderiza a sí mismo).
 // En el Dashboard siempre se ven publicaciones propias, por eso
@@ -230,6 +232,8 @@ const Dashboard = () => {
     contacto: '',
     esAdmin: false,
   });
+  const [plantillaEnVistaPrevia, setPlantillaEnVistaPrevia] = useState(null);
+  const carruselPlantillasRef = useRef(null);
 
   const [obras, setObras] = useState([]);
   const [nuevaObra, setNuevaObra] = useState({ titulo: '', descripcion: '', imagenUrl: '' });
@@ -1149,18 +1153,96 @@ return (
 
           <div className="dash-grupo dash-grupo-ancho">
             <span className="dash-etiqueta">Plantillas (elige una para la vista previa)</span>
-            <div className="dash-plantillas">
-              {PLANTILLAS_FONDO.map((url) => (
+            <div
+              style={{ position: 'relative' }}
+              onMouseLeave={() => setPlantillaEnVistaPrevia(null)}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <button
-                  key={url}
                   type="button"
-                  className={`dash-plantilla ${perfil.imagenFondoUrl === url ? 'seleccionado' : ''}`}
-                  onClick={() => setPerfil((prev) => ({ ...prev, imagenFondoUrl: url }))}
-                  title={url.split('/').pop()}
+                  aria-label="Ver plantillas anteriores"
+                  className="btn btn-ghost"
+                  onClick={() => carruselPlantillasRef.current?.scrollBy({ left: -240, behavior: 'smooth' })}
                 >
-                  <img src={url} alt="" loading="lazy" />
+                  <ChevronLeft size={18} />
                 </button>
-              ))}
+                <div
+                  ref={carruselPlantillasRef}
+                  onWheel={(e) => {
+                    if (carruselPlantillasRef.current) {
+                      e.preventDefault();
+                      carruselPlantillasRef.current.scrollLeft += e.deltaY || e.deltaX;
+                    }
+                  }}
+                  style={{
+                    display: 'flex',
+                    flex: 1,
+                    gap: '8px',
+                    overflowX: 'auto',
+                    padding: '8px 4px',
+                    scrollBehavior: 'smooth',
+                    WebkitOverflowScrolling: 'touch',
+                    scrollbarWidth: 'thin',
+                    touchAction: 'pan-x'
+                  }}
+                >
+                  {PLANTILLAS_DISPONIBLES.map((url, index) => (
+                    <button
+                      key={url}
+                      type="button"
+                      className={`dash-plantilla ${perfil.imagenFondoUrl === url ? 'seleccionado' : ''}`}
+                      title={`Plantilla ${index + 1}`}
+                      aria-label={`Seleccionar plantilla ${index + 1}`}
+                      onMouseEnter={() => setPlantillaEnVistaPrevia(index + 1)}
+                      onFocus={() => setPlantillaEnVistaPrevia(index + 1)}
+                      onBlur={() => setPlantillaEnVistaPrevia(null)}
+                      onClick={() => setPerfil((prev) => ({ ...prev, imagenFondoUrl: url }))}
+                    >
+                      <img src={url} alt="" loading="lazy" />
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  aria-label="Ver plantillas siguientes"
+                  className="btn btn-ghost"
+                  onClick={() => carruselPlantillasRef.current?.scrollBy({ left: 240, behavior: 'smooth' })}
+                >
+                  <ChevronRight size={18} />
+                </button>
+              </div>
+
+              <div
+                aria-hidden={!plantillaEnVistaPrevia}
+                style={{
+                  position: 'absolute',
+                  zIndex: 5,
+                  left: '50%',
+                  bottom: 'calc(100% + 8px)',
+                  width: 'min(260px, 70vw)',
+                  height: '150px',
+                  borderRadius: '14px',
+                  overflow: 'hidden',
+                  background: 'var(--superficie)',
+                  border: '2px solid var(--borde-fuerte)',
+                  boxShadow: '0 12px 30px rgba(0,0,0,0.35)',
+                  opacity: plantillaEnVistaPrevia ? 1 : 0,
+                  visibility: plantillaEnVistaPrevia ? 'visible' : 'hidden',
+                  transform: plantillaEnVistaPrevia
+                    ? 'translateX(-50%) scale(1)'
+                    : 'translateX(-50%) scale(0.96)',
+                  transition: 'opacity 180ms ease, transform 220ms ease, visibility 220ms ease',
+                  pointerEvents: 'none'
+                }}
+              >
+                {plantillaEnVistaPrevia && (
+                  <img
+                    src={PLANTILLAS_DISPONIBLES[plantillaEnVistaPrevia - 1]}
+                    alt={`Vista previa de la plantilla ${plantillaEnVistaPrevia}`}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                )}
+              </div>
             </div>
           </div>
 

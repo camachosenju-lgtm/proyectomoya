@@ -63,6 +63,58 @@ export const moderador = {
     } catch (err) {
       return { seguro: true };
     }
+  },
+
+  validarMediaGore: async (url) => {
+    const response = await fetch(
+      `https://api.sightengine.com/1.0/check.json?url=${encodeURIComponent(url)}&models=gore&api_user=${API_USER}&api_secret=${API_SECRET}`
+    );
+
+    if (!response.ok) {
+      throw new Error(`El servicio de moderación respondió con estado ${response.status}.`);
+    }
+
+    const data = await response.json();
+    if (data.status !== 'success' || typeof data.gore?.prob !== 'number') {
+      throw new Error(data.error?.message || 'No se pudo comprobar si el archivo contiene gore.');
+    }
+
+    return {
+      seguro: data.gore.prob <= 0.4,
+      detalle: data
+    };
+  },
+
+  validarMediaNoExplicita: async (url) => {
+    const response = await fetch(
+      `https://api.sightengine.com/1.0/check.json?url=${encodeURIComponent(url)}&models=nudity-2.0,wad,gore&api_user=${API_USER}&api_secret=${API_SECRET}`
+    );
+
+    if (!response.ok) {
+      throw new Error(`El servicio de moderación respondió con estado ${response.status}.`);
+    }
+
+    const data = await response.json();
+    if (
+      data.status !== 'success' ||
+      typeof data.nudity?.sexual_activity !== 'number' ||
+      typeof data.nudity?.erotica !== 'number' ||
+      typeof data.wad !== 'number' ||
+      typeof data.gore?.prob !== 'number'
+    ) {
+      throw new Error(data.error?.message || 'No se pudo verificar que el archivo sea apto para todo público.');
+    }
+
+    const contieneContenidoNoApto =
+      data.nudity.sexual_activity > 0.2 ||
+      data.nudity.erotica > 0.3 ||
+      data.wad > 0.4 ||
+      data.gore.prob > 0.4;
+
+    return {
+      seguro: !contieneContenidoNoApto,
+      detalle: data
+    };
   }
 };
 

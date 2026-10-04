@@ -15,6 +15,7 @@ const Galeria = () => {
   const [cargando, setCargando] = useState(true);
   const [busquedaRealizada, setBusquedaRealizada] = useState(false);
   const [userId, setUserId] = useState(null);
+  const [puedeVerExplicito, setPuedeVerExplicito] = useState(false);
 
   const [proyectoSeleccionado, setProyectoSeleccionado] = useState(null);
   const [comentarios, setComentarios] = useState([]);
@@ -51,7 +52,21 @@ const Galeria = () => {
     const { data: { user } } = await supabase.auth.getUser();
     const currentId = user?.id || null;
     setUserId(currentId);
-    fetchProyectosGlobales(false, currentId);
+    let esAdulto = false;
+    if (currentId) {
+      const { data: perfilUsuario, error } = await supabase
+        .from('perfiles')
+        .select('tipo_cuenta')
+        .eq('id', currentId)
+        .maybeSingle();
+      if (error) {
+        console.error('No se pudo comprobar el tipo de cuenta para filtrar la galería:', error.message);
+      } else {
+        esAdulto = perfilUsuario?.tipo_cuenta === 'adulto';
+      }
+    }
+    setPuedeVerExplicito(esAdulto);
+    fetchProyectosGlobales(false, currentId, esAdulto);
     if (currentId) cargarSeguidos(currentId);
   };
 
@@ -66,7 +81,11 @@ const Galeria = () => {
       .then(() => {}, () => {});
   };
 
-  const fetchProyectosGlobales = async (esBusqueda = false, idParaCarga = null) => {
+  const fetchProyectosGlobales = async (
+    esBusqueda = false,
+    idParaCarga = null,
+    mostrarExplicito = puedeVerExplicito
+  ) => {
     setCargando(true);
     const activeUserId = idParaCarga || userId;
 
@@ -79,6 +98,10 @@ const Galeria = () => {
           likes ( usuario_id ),
           comentarios (count)
         `);
+
+      if (!mostrarExplicito) {
+        query = query.or('es_nsfw.is.null,es_nsfw.eq.false');
+      }
 
       if (esBusqueda && terminoBusqueda.trim() !== '') {
         const t = `%${terminoBusqueda.trim()}%`;

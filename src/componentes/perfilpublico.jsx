@@ -46,17 +46,40 @@ const PerfilPublico = () => {
     const cargarTodo = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setMiId(user?.id || null);
+      let puedeVerExplicito = false;
+
+      if (user) {
+        const { data: perfilVisitante, error: errorVisitante } = await supabase
+          .from('perfiles')
+          .select('tipo_cuenta')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (errorVisitante) {
+          console.error('No se pudo comprobar el tipo de cuenta para el perfil:', errorVisitante.message);
+        } else {
+          puedeVerExplicito = perfilVisitante?.tipo_cuenta === 'adulto';
+        }
+      }
 
       const { data: dataPerfil } = await supabase
         .from('perfiles').select('*').eq('id', idUsuario).single();
 
-      if (dataPerfil) setPerfil(dataPerfil);
+      if (dataPerfil) {
+        setPerfil(dataPerfil);
+        document.body.style.backgroundColor = dataPerfil.color_fondo_web || '#0f0f0f';
+      }
 
-      const { data: dataObras } = await supabase
+      let queryObras = supabase
         .from('proyectos')
         .select('*, likes (usuario_id), comentarios (count)')
-        .eq('usuario_id', idUsuario)
-        .order('creado_el', { ascending: false });
+        .eq('usuario_id', idUsuario);
+      if (!puedeVerExplicito) {
+        queryObras = queryObras.or('es_nsfw.is.null,es_nsfw.eq.false');
+      }
+      const { data: dataObras, error: errorObras } = await queryObras.order('creado_el', { ascending: false });
+      if (errorObras) {
+        console.error('Error cargando publicaciones del perfil:', errorObras.message);
+      }
 
       if (dataObras) {
         const procesadas = dataObras.map(o => ({
@@ -70,6 +93,7 @@ const PerfilPublico = () => {
     };
 
     cargarTodo();
+    return () => { document.body.style.backgroundColor = ''; };
   }, [idUsuario]);
 
   useEffect(() => {
