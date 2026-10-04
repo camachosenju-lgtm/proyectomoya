@@ -4,26 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import { validarPerfil, validarProyecto } from './validaciones';
 import { moderador } from './moderacion';
 import '../estilos/perfil.css';
-import { Menu, Image as ImageIcon, Activity, LogOut, Heart, MessageCircle, Trash2, Pencil, Save, X, Send, Palette, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
+import { esFondoClaro } from './temasPerfil';
+import { Menu, User, Image as ImageIcon, ImagePlus, Activity, LogOut, Heart, MessageCircle, Trash2, Pencil, Save, X, Send, Palette, Settings, Inbox, ChevronLeft, ChevronRight } from 'lucide-react';
 
 
 const STORAGE_KEY_NOTIF_LEIDAS = 'pocketwork_notificaciones_leidas';
 const STORAGE_KEY_BIENVENIDA_ADULTO = 'pocketwork_bienvenida_adulto';
 const PLANTILLAS_DISPONIBLES = Array.from({ length: 50 }, (_, index) => `/imagenes/plantillas/textura${index + 1}.png`);
-const estiloFlechaCarrusel = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  flexShrink: 0,
-  width: '28px',
-  height: '36px',
-  padding: 0,
-  border: '1px solid rgba(0,0,0,0.12)',
-  borderRadius: '8px',
-  background: '#fff',
-  color: '#444',
-  cursor: 'pointer'
-};
 
 const ComentarioIndividual = ({ comentario, todosLosComentarios, alResponder, alBorrar, respondiendoA, enviarRespuesta, textoRespuesta, setTextoRespuesta, currentUserId, comentarioEditandoId, comentarioEditandoTexto, setComentarioEditandoId, setComentarioEditandoTexto, actualizarComentario }) => {
   const navigate = useNavigate();
@@ -38,84 +25,84 @@ const ComentarioIndividual = ({ comentario, todosLosComentarios, alResponder, al
   };
 
   return (
-    <div style={{
-      marginBottom: '10px',
-      marginLeft: comentario.parent_id ? '30px' : '0px', // Sangría solo si es hijo
-      borderLeft: comentario.parent_id ? '1px solid #444' : 'none',
-      paddingLeft: comentario.parent_id ? '15px' : '0px'
-    }}>
-      <div className="comentarioItem">
+    <div className={comentario.parent_id ? 'comentario anidado' : 'comentario'}>
         <img
-          src={comentario.perfiles?.avatar_url || "..."}
-          className="miniAvatarComment" style={{ cursor: esPropio ? 'default' : 'pointer' }}
+          src={comentario.perfiles?.avatar_url || 'https://via.placeholder.com/40?text=U'}
+          className={`avatar avatar-sm ${esPropio ? '' : 'cursor-pointer'}`}
           alt=""
           onClick={esPropio ? undefined : irAPerfil}
         />
-        <div style={{ flex: 1 }}>
-          <strong
+        <div className="comentario-cuerpo">
+          <button
+            type="button"
+            className={`comentario-autor ${esPropio ? 'propio' : ''}`}
             onClick={esPropio ? undefined : irAPerfil}
-            style={{ fontSize: '0.8em', color: '#f07e11', cursor: esPropio ? 'default' : 'pointer' }}
           >
             {comentario.perfiles?.nombre_completo}
-          </strong>
+          </button>
           {estaEditando ? (
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '6px' }}>
+            <div className="fila-respuesta sin-margen-izq">
               <input
                 value={comentarioEditandoTexto}
                 onChange={(e) => setComentarioEditandoTexto(e.target.value)}
-                className="inputComentario" style={{ fontSize: '0.85em', minWidth: '0' }}
+                className="campo"
               />
               <button
+                type="button"
                 onClick={() => actualizarComentario(comentario.id, comentarioEditandoTexto)}
-                className="btnResponder"
-              ><Save size={16} /></button>
+                className="accion exito"
+                title="Guardar"
+              ><Save size={15} /></button>
               <button
+                type="button"
                 onClick={() => { setComentarioEditandoId(null); setComentarioEditandoTexto(''); }}
-                className="btnBorrar"
-              ><X size={16} /></button>
+                className="accion peligro"
+                title="Cancelar"
+              ><X size={15} /></button>
             </div>
           ) : (
             <>
-              <p className="textoComentario">{comentario.contenido}</p>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button onClick={() => alResponder(comentario.id)} className="btnResponder">Responder</button>
+              <p className="comentario-texto">{comentario.contenido}</p>
+              <div className="comentario-acciones">
+                <button type="button" onClick={() => alResponder(comentario.id)} className="accion">Responder</button>
                 {esPropio && (
                   <button
+                    type="button"
                     onClick={() => {
                       setComentarioEditandoId(comentario.id);
                       setComentarioEditandoTexto(comentario.contenido);
                     }}
-                    className="btnResponder"
+                    className="accion"
+                    title="Editar"
                   ><Pencil size={14} /></button>
                 )}
               </div>
             </>
           )}
         </div>
-        <button onClick={() => alBorrar(comentario.id)} className="btnBorrar"><Trash2 size={16} /></button>
-      </div>
+        <button type="button" onClick={() => alBorrar(comentario.id)} className="accion peligro" title="Eliminar comentario"><Trash2 size={16} /></button>
 
       {/* INPUT DE RESPUESTA SI ESTÁ ACTIVO */}
       {respondiendoA === comentario.id && (
-        <div style={{ marginTop: '10px', display: 'flex', gap: '5px', marginLeft: '20px' }}>
+        <div className="fila-respuesta">
           <input
             type="text"
             placeholder="Escribe tu respuesta..."
-            className="inputComentario"
+            className="campo"
             value={textoRespuesta}
             onChange={(e) => setTextoRespuesta(e.target.value)}
             autoFocus
           />
           <button
+            type="button"
             onClick={() => enviarRespuesta(comentario.id)}
-            className="btnEnviarComment" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            className="btn-enviar-comentario chico"
           >
             <Send size={16} />
           </button>
         </div>
       )}
 
-      {/* LA MAGIA: El componente se llama a sí mismo para renderizar a sus propios hijos */}
       {hijos.map(hijo => (
         <ComentarioIndividual
           key={hijo.id}
@@ -148,11 +135,11 @@ const Dashboard = ({ alCerrarSesion }) => {
   const [perfil, setPerfil] = useState({
     nombre: 'Cargando...',
     bio: 'Artista ✨',
-    colorPrincipal: '#ee8f00',
-    colorSecundario: '#d17b18',
-    colorFondoWeb: '#0f0e0e',
+    colorPrincipal: '#f07e11',
+    colorSecundario: '#1d1d22',
+    colorFondoWeb: '#0b0b0d',
     colorLetraNombre: '#ffffff',
-    colorLetraBio: '#ffffff',
+    colorLetraBio: '#e6e6ec',
     avatarUrl: null,
     imagenFondoUrl: null
   });
@@ -162,7 +149,8 @@ const Dashboard = ({ alCerrarSesion }) => {
   const [obras, setObras] = useState([]);
   const [nuevaObra, setNuevaObra] = useState({ titulo: '', descripcion: '', imagenUrl: '' });
   const [contenidoExplicito, setContenidoExplicito] = useState(false);
-  const [cargando, setCargando] = useState(true);
+  const [cargando, setCargando] = useState(false);
+  const [inicializando, setInicializando] = useState(true);
   const [perfilAdultoVerificado, setPerfilAdultoVerificado] = useState(false);
 
   // ESTADOS PARA COMENTARIOS
@@ -185,6 +173,7 @@ const Dashboard = ({ alCerrarSesion }) => {
   const [mostrarModalSalir, setMostrarModalSalir] = useState(false);
   const [mostrarBienvenidaAdulto, setMostrarBienvenidaAdulto] = useState(false);
   const [desvaneciendoBienvenida, setDesvaneciendoBienvenida] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
 
   useEffect(() => {
     const almacenadas = localStorage.getItem(STORAGE_KEY_NOTIF_LEIDAS);
@@ -211,11 +200,6 @@ const Dashboard = ({ alCerrarSesion }) => {
   }, [notificaciones, notificacionesLeidasCount]);
 
   const [tituloEditando, setTituloEditando] = useState('');
-
-  useEffect(() => {
-    document.body.style.backgroundColor = perfil.colorFondoWeb;
-    return () => { document.body.style.backgroundColor = null; };
-  }, [perfil.colorFondoWeb]);
 
   useEffect(() => {
     const inicializar = async () => {
@@ -251,7 +235,7 @@ const Dashboard = ({ alCerrarSesion }) => {
         await supabase.auth.signOut();
         navigate('/login', { replace: true });
       } finally {
-        setCargando(false);
+        setInicializando(false);
       }
     };
     inicializar();
@@ -564,11 +548,11 @@ const Dashboard = ({ alCerrarSesion }) => {
       setPerfil({
         nombre: data.nombre_completo || '',
         bio: data.biografia || '',
-        colorPrincipal: data.color_principal || '#4a90e2',
-        colorSecundario: data.color_secundario || '#357abd',
-        colorFondoWeb: data.color_fondo_web || '#ffffff',
+        colorPrincipal: data.color_principal || '#f07e11',
+        colorSecundario: data.color_secundario || '#1d1d22',
+        colorFondoWeb: data.color_fondo_web || '#0b0b0d',
         colorLetraNombre: data.color_letra_nombre || '#ffffff',
-        colorLetraBio: data.color_letra_bio || '#ffffff',
+        colorLetraBio: data.color_letra_bio || '#e6e6ec',
         avatarUrl: data.avatar_url,
         imagenFondoUrl: data.imagen_fondo_url
       });
@@ -700,8 +684,6 @@ const Dashboard = ({ alCerrarSesion }) => {
           alert(contenidoExplicito
             ? '❌ Archivo bloqueado: se detectó contenido gore.'
             : '❌ Archivo bloqueado: no es apto para una publicación no explícita.');
-          event.target.value = "";
-          setCargando(false);
           return;
         }
       }
@@ -723,6 +705,7 @@ const Dashboard = ({ alCerrarSesion }) => {
       setCargando(false);
     } finally {
       setCargando(false);
+      event.target.value = '';
     }
   };
 
@@ -859,29 +842,22 @@ const Dashboard = ({ alCerrarSesion }) => {
 
   const obtenerFondoHeader = () => {
     if (perfil.imagenFondoUrl) return `url(${perfil.imagenFondoUrl}) center/cover no-repeat`;
-    return perfil.colorPrincipal;
+    return perfil.colorFondoWeb || perfil.colorPrincipal;
   };
 
-  const aplicarPlantilla = async (numero) => {
+  const cabeceraClara = !perfil.imagenFondoUrl && esFondoClaro(perfil.colorFondoWeb);
+
+  const aplicarPlantilla = (numero) => {
     const url = `/imagenes/plantillas/textura${numero}.png`;
     setPerfil(prev => ({ ...prev, imagenFondoUrl: url }));
-
-    if (usuario?.id) {
-      const { error } = await supabase
-        .from('perfiles')
-        .update({ imagen_fondo_url: url })
-        .eq('id', usuario.id);
-
-      if (error) {
-        alert('❌ No se pudo guardar la plantilla: ' + error.message);
-      }
-    }
   };
 
-  if (cargando || !perfilAdultoVerificado) return <div style={{ color: 'white', padding: '50px', textAlign: 'center' }}>Cargando...</div>;
+  if (inicializando || !perfilAdultoVerificado) {
+    return <div className="dash-cargando">Cargando tu espacio...</div>;
+  }
 
   return (
-    <section className="dashboard">
+    <section className="dash-pantalla">
       {mostrarBienvenidaAdulto && (
         <div
           role="status"
@@ -927,35 +903,40 @@ const Dashboard = ({ alCerrarSesion }) => {
           </div>
         </div>
       )}
-      <div className="navBar">
-        <div style={{ position: 'relative' }}>
+      <div className="dash-barra">
+        <div className="pos-relativa">
           <button
-            className="btnHamburguesa"
+            type="button"
+            className="btn btn-secundario"
             onClick={() => setMenuAbierto(!menuAbierto)}
+            aria-expanded={menuAbierto}
           >
-            <div key={menuAbierto ? 'open' : 'closed'} className="icon-spin-animate" style={{ display: 'flex', alignItems: 'center' }}>
+            <span key={menuAbierto ? 'open' : 'closed'} className="icono-girar">
               {menuAbierto ? <X size={18} /> : <Menu size={18} />}
-            </div>
+            </span>
             Menú
           </button>
 
           {menuAbierto && (
-            <div className="menuDesplegable menu-dropdown-animate">
+            <div className="dash-menu menu-caer">
               <button
+                type="button"
                 onClick={() => { setMenuAbierto(false); navigate('/galeria'); }}
-                className="menuItem" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                className="dash-menu-item"
               >
                 <ImageIcon size={18} /> Galería
               </button>
               <button
+                type="button"
                 onClick={() => { setMenuAbierto(false); navigate('/notificaciones'); }}
-                className="menuItem" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                className="dash-menu-item"
               >
                 <Activity size={18} /> Ver actividad
               </button>
-              <div style={{ borderTop: '1px solid #eee', margin: '5px 0' }}></div>
+              <hr className="dash-menu-sep" />
               <button
-                className="menuItem" style={{ color: '#e74c3c', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}
+                type="button"
+                className="dash-menu-item peligro"
                 onClick={() => { setMenuAbierto(false); setMostrarModalSalir(true); }}
               >
                 <LogOut size={18} /> Cerrar Sesión
@@ -963,66 +944,99 @@ const Dashboard = ({ alCerrarSesion }) => {
             </div>
           )}
         </div>
+        <button type="button" className="btn btn-ghost" onClick={() => navigate('/galeria')}>
+          <ImageIcon size={18} /> Explorar galería
+        </button>
       </div>
 
-      <div className="perfilHeader" style={{ background: obtenerFondoHeader() }}>
-        <img className="fotoPerfil" src={perfil.avatarUrl || "https://via.placeholder.com/120?text=👤"} alt="Perfil" />
-        <h1 className="nombreUsuario" style={{ color: perfil.colorLetraNombre }}>{perfil.nombre}</h1>
-        <p className="bioUsuario" style={{ color: perfil.colorLetraBio }}>{perfil.bio}</p>
-
-        <div className="configPerfil" style={{ padding: '14px 18px', maxHeight: '38vh', overflowY: 'auto' }}>
-          <h4 style={{ color: '#333', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}><Settings size={20} /> Personalizar mi espacio</h4>
-          <div className="configRow">
-            <div className="configGrupo">
-              <label className="label">Foto Perfil (Auto):</label>
-              <label htmlFor="upload-avatar" className="btnSubirArchivo">
-                <ImageIcon size={14} /> Elegir Foto
-              </label>
-              <input id="upload-avatar" type="file" accept="image/*" onChange={(e) => subirImagen(e, 'Avatares', 'avatar_url', 'avatarUrl')} style={{ display: 'none' }} />
-            </div>
-            <input
-              type="text"
-              maxLength={25} // <--- NO DEJA ESCRIBIR MÁS DE 25
-              className="inputText"
-              placeholder="Nombre de usuario"
-              value={perfil.nombre}
-              onChange={(e) => setPerfil({ ...perfil, nombre: e.target.value })}
-            />
-            <textarea
-              maxLength={150} // <--- NO DEJA ESCRIBIR MÁS DE 150
-              className="inputText" style={{ height: '60px', resize: 'none' }}
-              placeholder="Describe tu perfil..."
-              value={perfil.bio}
-              onChange={(e) => setPerfil({ ...perfil, bio: e.target.value })}
-            />
+      <div className="dash-cabecera" style={{ background: obtenerFondoHeader() }}>
+        {perfil.avatarUrl && !avatarError ? (
+          <img
+            className="dash-avatar"
+            src={perfil.avatarUrl}
+            alt="Foto de perfil"
+            onError={() => setAvatarError(true)}
+          />
+        ) : (
+          <div className="dash-avatar" role="img" aria-label="Sin foto de perfil">
+            <User size={54} color="var(--texto-3)" />
           </div>
+        )}
+        <h1 className={`dash-nombre${cabeceraClara ? ' claro' : ''}`} style={{ color: perfil.colorLetraNombre }}>{perfil.nombre}</h1>
+        <p className={`dash-bio${cabeceraClara ? ' clara' : ''}`} style={{ color: perfil.colorLetraBio }}>{perfil.bio}</p>
+      </div>
 
-          <div className="configRow">
-            <div className="configGrupoColor"><label className="label">Fondo Web:</label><input type="color" value={perfil.colorFondoWeb} className="inputColor" onChange={(e) => setPerfil({ ...perfil, colorFondoWeb: e.target.value })} /></div>
-            <div className="configGrupoColor"><label className="label">Cuadro:</label><input type="color" value={perfil.colorSecundario} className="inputColor" onChange={(e) => setPerfil({ ...perfil, colorSecundario: e.target.value })} /></div>
-            <div className="configGrupoColor"><label className="label">Color texto nombre:</label><input type="color" value={perfil.colorLetraNombre} className="inputColor" onChange={(e) => setPerfil({ ...perfil, colorLetraNombre: e.target.value })} /></div>
-            <div className="configGrupoColor"><label className="label">Color texto bio:</label><input type="color" value={perfil.colorLetraBio} className="inputColor" onChange={(e) => setPerfil({ ...perfil, colorLetraBio: e.target.value })} /></div>
-            <div className="configGrupo">
-              <label className="label">Fondo (Auto):</label>
-              <label htmlFor="upload-fondo" className="btnSubirArchivo">
-                <ImageIcon size={14} /> Elegir Fondo
+      <div className="dash-panel">
+        <h4 className="dash-panel-titulo"><Settings size={20} /> Personalizar mi espacio</h4>
+        <div className="dash-fila">
+            <div className="dash-grupo">
+              <span className="dash-etiqueta">Foto de perfil</span>
+              <label htmlFor="upload-avatar" className="btn btn-secundario cursor-pointer">
+                <ImagePlus size={16} /> Elegir foto
               </label>
-              <input id="upload-fondo" type="file" onChange={(e) => subirImagen(e, 'Fondos', 'imagen_fondo_url', 'imagenFondoUrl')} style={{ display: 'none' }} />
+              <input id="upload-avatar" type="file" accept="image/*" onChange={(e) => { setAvatarError(false); subirImagen(e, 'Avatares', 'avatar_url', 'avatarUrl'); }} className="oculto" />
+            </div>
+            <label className="dash-grupo">
+              <span className="dash-etiqueta">Nombre de usuario</span>
+              <input
+                type="text"
+                maxLength={25}
+                className="campo"
+                placeholder="Nombre de usuario"
+                value={perfil.nombre}
+                onChange={(e) => setPerfil({ ...perfil, nombre: e.target.value })}
+              />
+            </label>
+            <label className="dash-grupo">
+              <span className="dash-etiqueta">Biografía</span>
+              <textarea
+                maxLength={150}
+                className="campo"
+                placeholder="Describe tu perfil..."
+                value={perfil.bio}
+                onChange={(e) => setPerfil({ ...perfil, bio: e.target.value })}
+              />
+            </label>
+        </div>
+
+        <div className="dash-fila">
+            <label className="dash-grupo-color">
+              <span className="dash-etiqueta">Fondo web</span>
+              <input type="color" value={perfil.colorFondoWeb} className="dash-color" onChange={(e) => setPerfil({ ...perfil, colorFondoWeb: e.target.value })} />
+            </label>
+            <label className="dash-grupo-color">
+              <span className="dash-etiqueta">Cuadro</span>
+              <input type="color" value={perfil.colorSecundario} className="dash-color" onChange={(e) => setPerfil({ ...perfil, colorSecundario: e.target.value })} />
+            </label>
+            <label className="dash-grupo-color">
+              <span className="dash-etiqueta">Texto del nombre</span>
+              <input type="color" value={perfil.colorLetraNombre} className="dash-color" onChange={(e) => setPerfil({ ...perfil, colorLetraNombre: e.target.value })} />
+            </label>
+            <label className="dash-grupo-color">
+              <span className="dash-etiqueta">Texto de la biografía</span>
+              <input type="color" value={perfil.colorLetraBio} className="dash-color" onChange={(e) => setPerfil({ ...perfil, colorLetraBio: e.target.value })} />
+            </label>
+            <div className="dash-grupo">
+              <span className="dash-etiqueta">Banner</span>
+              <label htmlFor="upload-fondo" className="btn btn-secundario cursor-pointer">
+                <ImagePlus size={16} /> Elegir fondo
+              </label>
+              <input id="upload-fondo" type="file" accept="image/*" onChange={(e) => subirImagen(e, 'Fondos', 'imagen_fondo_url', 'imagenFondoUrl')} className="oculto" />
             </div>
 
-            <div className="configGrupo" style={{ minWidth: '230px' }}>
-              <label className="label">Plantilla (Auto):</label>
+            <div className="dash-grupo dash-grupo-ancho">
+              <span className="dash-etiqueta">Plantillas (elige una para la vista previa)</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <input
                   type="number"
                   min="1"
                   max="50"
-                  className="inputText"
+                  className="campo"
                   placeholder="Ej: 1"
                   onChange={async (e) => {
                     const num = parseInt(e.target.value);
                     if (num >= 1 && num <= 50) {
-                      await aplicarPlantilla(num);
+                      aplicarPlantilla(num);
                     } else if (num) {
                       alert('Plantilla no disponible. Solo hay plantillas del 1 al 50.');
                       e.target.value = '';
@@ -1033,7 +1047,7 @@ const Dashboard = ({ alCerrarSesion }) => {
               </div>
 
               <div
-                style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}
+                style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px', position: 'relative' }}
                 onMouseLeave={() => setPlantillaEnVistaPrevia(null)}
               >
                 <div
@@ -1064,7 +1078,7 @@ const Dashboard = ({ alCerrarSesion }) => {
                     type="button"
                     aria-label="Ver plantillas anteriores"
                     onClick={() => carruselPlantillasRef.current?.scrollBy({ left: -240, behavior: 'smooth' })}
-                    style={estiloFlechaCarrusel}
+                    className="btn btn-ghost"
                   >
                     <ChevronLeft size={18} />
                   </button>
@@ -1094,20 +1108,12 @@ const Dashboard = ({ alCerrarSesion }) => {
                       <button
                         key={url}
                         type="button"
+                        className={`dash-plantilla ${activo ? 'seleccionado' : ''}`}
                         style={{
                           position: 'relative',
-                          border: activo ? '2px solid #f07e11' : '1px solid rgba(0,0,0,0.15)',
-                          borderRadius: '12px',
-                          padding: 0,
-                          background: '#fff',
-                          cursor: 'pointer',
                           minWidth: '52px',
                           width: '52px',
                           height: '52px',
-                          overflow: 'hidden',
-                          boxShadow: activo ? '0 0 0 3px rgba(240,126,17,0.18)' : '0 4px 10px rgba(0,0,0,0.06)',
-                          transition: 'transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease',
-                          transform: activo ? 'translateY(-2px)' : 'translateY(0)'
                         }}
                         title={`Plantilla ${index + 1}`}
                         onMouseEnter={() => setPlantillaEnVistaPrevia(index + 1)}
@@ -1143,7 +1149,7 @@ const Dashboard = ({ alCerrarSesion }) => {
                     type="button"
                     aria-label="Ver plantillas siguientes"
                     onClick={() => carruselPlantillasRef.current?.scrollBy({ left: 240, behavior: 'smooth' })}
-                    style={estiloFlechaCarrusel}
+                    className="btn btn-ghost"
                   >
                     <ChevronRight size={18} />
                   </button>
@@ -1151,7 +1157,7 @@ const Dashboard = ({ alCerrarSesion }) => {
                     style={{
                       position: 'absolute',
                       left: '50%',
-                      top: '-8px',
+                      bottom: 'calc(100% + 8px)',
                       width: '220px',
                       height: '132px',
                       borderRadius: '14px',
@@ -1162,8 +1168,8 @@ const Dashboard = ({ alCerrarSesion }) => {
                       opacity: plantillaEnVistaPrevia ? 1 : 0,
                       visibility: plantillaEnVistaPrevia ? 'visible' : 'hidden',
                       transform: plantillaEnVistaPrevia
-                        ? 'translate(-50%, -100%) scale(1)'
-                        : 'translate(-50%, -96%) scale(0.94)',
+                        ? 'translate(-50%, 0) scale(1)'
+                        : 'translate(-50%, 4px) scale(0.94)',
                       transition: 'opacity 180ms ease, transform 220ms ease, visibility 220ms ease',
                       pointerEvents: 'none'
                     }}
@@ -1199,139 +1205,145 @@ const Dashboard = ({ alCerrarSesion }) => {
                       </>
                     )}
                   </div>
-                </div>
+                    </div>
+                  </div>
               </div>
-            </div>
-
-            <button className="btnGuardar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={guardarCambiosPerfil}><Save size={16} />Guardar cambios</button>
-          </div>
         </div>
+
+        <button type="button" className="btn btn-exito" onClick={guardarCambiosPerfil}><Save size={16} /> Guardar cambios</button>
       </div>
 
-      <div className="subirObra" style={{ background: perfil.colorSecundario }}>
-        <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Palette size={24} /> Publicar Nuevo Proyecto</h2>
-        <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+      <div className="dash-publicar">
+        <h2 className="dash-publicar-titulo"><Palette size={22} /> Publicar nuevo proyecto</h2>
+        <div className="dash-publicar-fila">
           <input
             type="text"
             maxLength={20}
             placeholder="Título (máx 20)"
-            className="inputText"
+            className="campo"
             value={nuevaObra.titulo}
             onChange={(e) => setNuevaObra({ ...nuevaObra, titulo: e.target.value })}
+            disabled={cargando}
           />
 
-          <label
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              flexBasis: '100%',
-              color: '#fff',
-              cursor: 'pointer'
-            }}
-          >
+          <label className="dash-publicar-opcion-explicita">
             <input
               type="checkbox"
               checked={contenidoExplicito}
               onChange={(e) => setContenidoExplicito(e.target.checked)}
+              disabled={cargando}
             />
-            Marcar como contenido explícito (+18)
+            <span className="dash-etiqueta">Marcar como contenido explícito (+18)</span>
           </label>
 
-          {/* CONECTAMOS LA FUNCIÓN AQUÍ */}
-          <label htmlFor="upload-proyecto" className="btnSubirArchivo">
-            <ImageIcon size={18} /> Subir foto
+          <label htmlFor="upload-proyecto" className="btn btn-secundario cursor-pointer">
+            <ImageIcon size={18} /> Subir archivo
           </label>
           <input
             id="upload-proyecto"
             type="file"
             accept="image/*,video/*,audio/*"
             onChange={prepararArchivoProyecto}
-            style={{ display: 'none' }}
+            className="oculto"
+            disabled={cargando}
           />
 
           <button
-            className="btnGuardar"
+            type="button"
+            className="btn btn-primario"
             onClick={publicarProyecto}
+            disabled={cargando}
           >
-            <Send size={18} /> Publicar
+            <Send size={18} /> {cargando ? 'Procesando...' : 'Publicar'}
           </button>
         </div>
       </div>
 
-      <h2 className="tituloSeccion">Mi Portafolio</h2>
-      <div className="gridObras">
+      <h2 className="dash-titulo-seccion">Mi portafolio</h2>
+      <div className="dash-grid">
         {obras.length > 0 ? obras.map((obra) => (
-          <div key={obra.id} className="tarjetaObra" onClick={() => abrirProyecto(obra)}>
-            {obra.tipo_archivo === 'video' ? <video src={obra.archivo_url} className="imgObra" /> :
-              <img src={obra.archivo_url} alt={obra.titulo} className="imgObra" />}
-
-            <div className="infoObra">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <h3 style={{ margin: 0 }}>{obra.titulo}</h3>
-                <div className="statsPrivadas">
-                  <button onClick={(e) => manejarLike(e, obra.id, obra.miLike)} className="btnLikePrivado" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }} title={obra.miLike ? 'Quitar like' : 'Dar like'}>
-                    {obra.miLike ? <Heart size={14} fill="currentColor" color="#e74c3c" /> : <Heart size={14} color="#555" />} {obra.totalLikes}
+          <div key={obra.id} className="dash-tarjeta" onClick={() => abrirProyecto(obra)}>
+            {obra.tipo_archivo === 'video' ? (
+              <video src={obra.archivo_url} className="dash-tarjeta-media" muted />
+            ) : (
+              <img src={obra.archivo_url} alt={obra.titulo} className="dash-tarjeta-media" />
+            )}
+            <div className="dash-tarjeta-info">
+              <div className="dash-tarjeta-cabecera">
+                <h3 className="dash-tarjeta-titulo">{obra.titulo}</h3>
+                <div className="dash-stats">
+                  <button
+                    type="button"
+                    onClick={(e) => manejarLike(e, obra.id, obra.miLike)}
+                    className={`dash-stat cursor-pointer ${obra.miLike ? 'activo' : ''}`}
+                    title={obra.miLike ? 'Quitar like' : 'Dar like'}
+                  >
+                    <Heart size={14} fill={obra.miLike ? 'currentColor' : 'none'} /> {obra.totalLikes}
                   </button>
-                  <span title="Comentarios" style={{ marginLeft: '10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><MessageCircle size={14} /> {obra.comentarios?.[0]?.count || 0}</span>
+                  <span className="dash-stat" title="Comentarios">
+                    <MessageCircle size={14} /> {obra.comentarios?.[0]?.count || 0}
+                  </span>
                 </div>
               </div>
-
               <button
+                type="button"
+                className="accion peligro alinear-inicio"
                 onClick={(e) => {
                   e.stopPropagation();
                   borrarProyecto(obra.id);
                 }}
-                style={{ color: '#e74c3c', border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.8em', display: 'flex', alignItems: 'center', gap: '4px' }}
               >
                 <Trash2 size={14} /> Eliminar
               </button>
             </div>
           </div>
-        )) : <div className="sinObras">Sube tu primer proyecto arriba <Send size={16} style={{ verticalAlign: 'middle', marginLeft: '5px' }} /></div>}
+        )) : (
+          <div className="dash-vacio">
+            <Inbox size={34} />
+            <span>Sube tu primer proyecto arriba para verlo aquí.</span>
+          </div>
+        )}
       </div>
 
       {/* MODAL DE COMENTARIOS */}
       {
         proyectoSeleccionado && (
-          <div className="overlay" onClick={() => setProyectoSeleccionado(null)}>
-            <div className="modal" onClick={e => e.stopPropagation()}>
-              <div className="modalContent">
-                <div className="modalMedia">
+          <div className="modal-fondo ancho" onClick={() => setProyectoSeleccionado(null)}>
+            <div className="modal-obra" onClick={e => e.stopPropagation()}>
+              <div className="modal-obra-media">
                   {proyectoSeleccionado.tipo_archivo === 'video' ?
-                    <video src={proyectoSeleccionado.archivo_url} controls autoPlay className="mediaFull" /> :
-                    <img src={proyectoSeleccionado.archivo_url} className="mediaFull" alt="" />
+                    <video src={proyectoSeleccionado.archivo_url} controls autoPlay /> :
+                    <img src={proyectoSeleccionado.archivo_url} alt="" />
                   }
-                </div>
-                <div className="modalSide">
-                  <button className="btnClose" onClick={() => {
+              </div>
+              <div className="modal-obra-lado">
+                  <button type="button" className="btn-icono alinear-fin mb-3" onClick={() => {
                     setProyectoSeleccionado(null);
-                    setRespondiendoA(null); // Limpiamos para que no se quede abierto al cambiar de post
-                  }}                   ><X size={24} /></button>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                    setRespondiendoA(null);
+                  }}><X size={18} /></button>
+                  <div className="modal-obra-cabecera">
                     {editandoTitulo ? (
                       <>
                         <input
                           value={tituloEditando}
                           onChange={(e) => setTituloEditando(e.target.value)}
                           maxLength={20}
-                          className="inputText" style={{ background: '#121212', color: 'white', flex: 1 }}
+                          className="campo"
                         />
-                        <button onClick={actualizarTituloProyecto} className="btnResponder"><Save size={16} /></button>
-                        <button onClick={() => { setEditandoTitulo(false); setTituloEditando(proyectoSeleccionado.titulo || ''); }} className="btnBorrar"><X size={16} /></button>
+                        <button type="button" onClick={actualizarTituloProyecto} className="accion exito"><Save size={16} /></button>
+                        <button type="button" onClick={() => { setEditandoTitulo(false); setTituloEditando(proyectoSeleccionado.titulo || ''); }} className="accion peligro"><X size={16} /></button>
                       </>
                     ) : (
                       <>
-                        <h2 className="modalTitulo">{proyectoSeleccionado.titulo}</h2>
-                        <button onClick={() => setEditandoTitulo(true)} className="btnResponder" style={{ alignSelf: 'center' }}><Pencil size={18} /></button>
+                        <h2 className="modal-obra-titulo">{proyectoSeleccionado.titulo}</h2>
+                        <button type="button" onClick={() => setEditandoTitulo(true)} className="accion"><Pencil size={18} /></button>
                       </>
                     )}
                   </div>
                   {proyectoSeleccionado.descripcion && (
-                    <p className="descripcionText">{proyectoSeleccionado.descripcion}</p>
+                    <p className="modal-obra-descripcion">{proyectoSeleccionado.descripcion}</p>
                   )}
-                  <div className="listaComentarios">
-                    {/* Renderizamos solo los comentarios RAÍZ (sin padre), el componente se encarga del resto */}
+                  <div className="lista-comentarios">
                     {comentarios.filter(c => !c.parent_id).map(c => (
                       <ComentarioIndividual
                         key={c.id}
@@ -1353,18 +1365,17 @@ const Dashboard = ({ alCerrarSesion }) => {
                     ))}
                   </div>
 
-                  <form onSubmit={enviarComentario} className="formComentario">
+                  <form onSubmit={enviarComentario} className="form-comentario">
                     <input
-                      className="inputComentario"
+                      className="campo"
                       placeholder="Escribe un comentario..."
                       value={nuevoComentario}
                       onChange={(e) => setNuevoComentario(e.target.value)}
                     />
-                    <button type="submit" disabled={enviandoComentario} className="btnEnviarComment" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <button type="submit" disabled={enviandoComentario} className="btn-enviar-comentario">
                       {enviandoComentario ? '...' : <Send size={18} />}
                     </button>
                   </form>
-                </div>
               </div>
             </div>
           </div>
@@ -1372,20 +1383,23 @@ const Dashboard = ({ alCerrarSesion }) => {
       }
       {/* MODAL DE CONFIRMACIÓN PARA SALIR */}
       {mostrarModalSalir && (
-        <div className="overlay" onClick={() => setMostrarModalSalir(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ width: '350px', height: 'fit-content', padding: '35px 25px', textAlign: 'center', background: '#ffffffff', border: `1px solid ${perfil.colorPrincipal}`, boxShadow: `0 10px 40px ${perfil.colorPrincipal}33` }}>
-            <h2 style={{ color: '#000', marginBottom: '10px' }}>¿Deseas salir?</h2>
-            <p style={{ color: '#696969ff', marginBottom: '25px', fontSize: '15px' }}>Tu sesión se cerrará de forma segura.</p>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '15px' }}>
+        <div className="modal-fondo" onClick={() => setMostrarModalSalir(false)}>
+          <div className="modal-caja" onClick={e => e.stopPropagation()}>
+            <LogOut size={42} className="icono-modal" style={{ color: 'var(--marca-400)' }} />
+            <h3 className="modal-titulo">¿Deseas salir?</h3>
+            <p className="modal-texto">Tu sesión se cerrará de forma segura.</p>
+            <div className="modal-acciones">
               <button
+                type="button"
                 onClick={() => setMostrarModalSalir(false)}
-                className="btnCancelar"
+                className="btn btn-ghost"
               >
                 No, quedarme
               </button>
               <button
+                type="button"
                 onClick={() => { setMostrarModalSalir(false); manejarCerrarSesion(); }}
-                className="btnConfirmar"
+                className="btn btn-peligro"
               >
                 <LogOut size={16} /> Sí, salir
               </button>
@@ -1393,7 +1407,7 @@ const Dashboard = ({ alCerrarSesion }) => {
           </div>
         </div>
       )}
-    </section >
+    </section>
   );
 };
 

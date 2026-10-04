@@ -322,6 +322,18 @@
   flex: 1 1 240px;
   width: auto;
 }
+
+.dash-publicar-opcion-explicita {
+  display: flex;
+  flex: 1 1 100%;
+  align-items: center;
+  gap: var(--sp-2);
+  cursor: pointer;
+}
+
+.dash-publicar-opcion-explicita input {
+  accent-color: var(--marca-500);
+}
 /* ---------- Grilla de obras ---------- */
 .dash-titulo-seccion {
   font-size: var(--fs-xl);

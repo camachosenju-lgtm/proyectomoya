@@ -7,7 +7,7 @@ const PALABRAS_PROHIBIDAS = [
   'matar', 'asesinar', 'muerte', 'sangre', 'pistola', 'rifle', 'balazo', 'bomba', 'terrorismo', 'terrorista', 'atentado', 'secuestro', 'violacion', 'golpear', 'navaja', 'cuchillo', 'suicidio', 'veneno', 'masacre', 'sicario', 'cartel', 'droga', 'cocaina', 'heroina', 'metanfetamina',
   'pene', 'vagina', 'sexo', 'porno', 'xxx', 'ereccion', 'orgasmo', 'cojer', 'anal', 'oral', 'clitoris', 'testiculo', 'vibrador', 'hentai', 'semen', 'esperma', 'fetiche', 'sadismo', 'masoquismo', 'pedofilo', 'incesto', 'zoofilia', 'pornografia', 'intercourse', 'ejaculacion',
   'nazi', 'racista', 'xenofobia', 'homofobia', 'fag', 'faggot', 'nigga', 'nigger', 'kike', 'retard', 'retrasado', 'mojadito', 'sudaca', 'machista', 'feminazi',
-  'p.u.t.a', 'm.i.e.r.d.a', 'p-u-t-a', 'sh-it', 'f-u-c-k', 'p3n3', 'v4g1n4', 'm1erd4','negrito','negrita','singar'
+  'p.u.t.a', 'pussy','m.i.e.r.d.a', 'p-u-t-a', 'sh-it', 'f-u-c-k', 'p3n3', 'v4g1n4', 'm1erd4','negrito','negrita','singar'
 ];
 
 export const moderador = {
@@ -99,7 +99,9 @@ export const moderador = {
       data.status !== 'success' ||
       typeof data.nudity?.sexual_activity !== 'number' ||
       typeof data.nudity?.erotica !== 'number' ||
-      typeof data.wad !== 'number' ||
+      typeof data.weapon !== 'number' ||
+      typeof data.alcohol !== 'number' ||
+      typeof data.drugs !== 'number' ||
       typeof data.gore?.prob !== 'number'
     ) {
       throw new Error(data.error?.message || 'No se pudo verificar que el archivo sea apto para todo público.');
@@ -108,7 +110,9 @@ export const moderador = {
     const contieneContenidoNoApto =
       data.nudity.sexual_activity > 0.2 ||
       data.nudity.erotica > 0.3 ||
-      data.wad > 0.4 ||
+      data.weapon > 0.4 ||
+      data.alcohol > 0.4 ||
+      data.drugs > 0.4 ||
       data.gore.prob > 0.4;
 
     return {
