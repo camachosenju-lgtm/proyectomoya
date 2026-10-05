@@ -120,10 +120,39 @@ const Notificaciones = () => {
           <div className="notif-lista">
             {notificaciones.map(n => (
               <article key={n.id} className="notif-item">
-                <img src={n.foto} alt="" className="avatar avatar-md" />
+                <button
+                  type="button"
+                  onClick={() => n.usuarioId && navigate(`/perfil/${n.usuarioId}`)}
+                  disabled={!n.usuarioId}
+                  aria-label={`Ver perfil de ${n.nombre}`}
+                  style={{
+                    padding: 0,
+                    border: 0,
+                    borderRadius: '50%',
+                    background: 'none',
+                    cursor: n.usuarioId ? 'pointer' : 'default',
+                  }}
+                >
+                  <img src={n.foto} alt="" className="avatar avatar-md" />
+                </button>
                 <div className="crecer">
                   <p className="notif-texto">
-                    <strong className="texto-marca">{n.nombre}</strong>
+                    <button
+                      type="button"
+                      className="texto-marca"
+                      onClick={() => n.usuarioId && navigate(`/perfil/${n.usuarioId}`)}
+                      disabled={!n.usuarioId}
+                      style={{
+                        padding: 0,
+                        border: 0,
+                        background: 'none',
+                        font: 'inherit',
+                        fontWeight: 700,
+                        cursor: n.usuarioId ? 'pointer' : 'default',
+                      }}
+                    >
+                      {n.nombre}
+                    </button>
                     {n.tipo === 'publicacion' ? (
                       <>
                         <span className="texto-2"> publicó una nueva obra: </span>
