@@ -361,7 +361,7 @@ const Galeria = () => {
             <Link to="/retos" className="btn btn-ghost">
               <Trophy size={18} /> Retos
             </Link>
-            <Link to="/dashboard" className="btn btn-secundario">
+            <Link to={puedeVerExplicito ? '/dashboard-adulto' : '/dashboard'} className="btn btn-secundario">
               <User size={18} /> Mi perfil
             </Link>
           </div>

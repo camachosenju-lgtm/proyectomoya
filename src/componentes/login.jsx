@@ -7,6 +7,7 @@ import logoPocketwork from '../imagenes/logo.png';
 import './estilos.css';
 import ModalMensaje from './ModalMensaje';
 import { traducirErrorSupabase } from './validaciones';
+import { habilitarSonidoNotificaciones } from './actividad';
 
 const Login = () => {
   const [datos, setDatos] = useState({ correo: '', clave: '' });
@@ -51,6 +52,7 @@ const Login = () => {
       return;
     }
 
+    habilitarSonidoNotificaciones();
     setCargando(true);
 
     const { data, error } = await supabase.auth.signInWithPassword({

@@ -317,7 +317,11 @@ const PerfilPublico = () => {
               </button>
             </>
           )}
-          <button type="button" className="btn btn-secundario" onClick={() => navigate('/dashboard')}>
+          <button
+            type="button"
+            className="btn btn-secundario"
+            onClick={() => navigate(puedeVerExplicito ? '/dashboard-adulto' : '/dashboard')}
+          >
             <User size={18} /> Mi perfil
           </button>
         </div>

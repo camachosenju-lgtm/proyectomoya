@@ -14,12 +14,14 @@ import {
 import {
   Menu,
   User,
+  Users,
   X,
   Image as ImageIcon,
   Activity,
   LogOut,
   Heart,
   MessageCircle,
+  Bell,
   Trash2,
   Pencil,
   Save,
@@ -37,6 +39,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import AlertModal from './AlertModal';
+import { actualizarNuevasNotificaciones, cargarActividad, habilitarSonidoNotificaciones, reproducirSonidoNotificacion } from './actividad';
 
 const STORAGE_KEY_NOTIF_LEIDAS = 'pocketwork_notificaciones_leidas';
 const PLANTILLAS_DISPONIBLES = Array.from({ length: 50 }, (_, index) => `/imagenes/plantillas/textura${index + 1}.png`);
@@ -258,10 +261,15 @@ const Dashboard = () => {
   // Notificaciones
   const [notificaciones, setNotificaciones] = useState([]);
   const [contadorNotificaciones, setContadorNotificaciones] = useState(0);
-  const [notificacionesLeidasCount, setNotificacionesLeidasCount] = useState(0);
+  const [notificacionesLeidasCount, setNotificacionesLeidasCount] = useState(() => {
+    const almacenadas = Number(localStorage.getItem(STORAGE_KEY_NOTIF_LEIDAS));
+    return Number.isFinite(almacenadas) && almacenadas >= 0 ? almacenadas : 0;
+  });
+  const notificacionesIdsRef = useRef(null);
+  const sonidoInicialNotificacionesRef = useRef(false);
 
   // Mis números (estadísticas del artista)
-  const [misNumeros, setMisNumeros] = useState({ vistas: 0, likes: 0, comentarios: 0, top: [] });
+  const [misNumeros, setMisNumeros] = useState({ vistas: 0, likes: 0, comentarios: 0, seguidores: 0, top: [] });
 
   // UI
   const [editandoTitulo, setEditandoTitulo] = useState(false);
@@ -285,14 +293,6 @@ const Dashboard = () => {
     setAlerta({ visible: true, mensaje, tipo: 'confirm', titulo, onConfirm });
 
   useEffect(() => {
-    const almacenadas = localStorage.getItem(STORAGE_KEY_NOTIF_LEIDAS);
-    const parsed = Number(almacenadas);
-    if (Number.isFinite(parsed) && parsed >= 0) {
-      setNotificacionesLeidasCount(parsed);
-    }
-  }, []);
-
-  useEffect(() => {
     localStorage.setItem(STORAGE_KEY_NOTIF_LEIDAS, String(notificacionesLeidasCount));
   }, [notificacionesLeidasCount]);
 
@@ -306,6 +306,16 @@ const Dashboard = () => {
     const leidas = Number(localStorage.getItem(STORAGE_KEY_NOTIF_LEIDAS)) || 0;
     setContadorNotificaciones(Math.max(0, totalNotificaciones - leidas));
   };
+
+  useEffect(() => {
+    const habilitarSonido = () => habilitarSonidoNotificaciones();
+    window.addEventListener('pointerdown', habilitarSonido, { once: true });
+    window.addEventListener('keydown', habilitarSonido, { once: true });
+    return () => {
+      window.removeEventListener('pointerdown', habilitarSonido);
+      window.removeEventListener('keydown', habilitarSonido);
+    };
+  }, []);
 
   useEffect(() => {
     const inicializar = async () => {
@@ -330,6 +340,26 @@ const Dashboard = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [obras]);
 
+  useEffect(() => {
+    if (!usuario) return;
+
+    const cargarSeguidores = async () => {
+      const { count, error } = await supabase
+        .from('seguimientos')
+        .select('id', { count: 'exact', head: true })
+        .eq('seguido_id', usuario.id);
+
+      if (error) {
+        console.error('Error cargando número de seguidores:', error.message);
+        return;
+      }
+
+      setMisNumeros((actual) => ({ ...actual, seguidores: count || 0 }));
+    };
+
+    cargarSeguidores();
+  }, [usuario]);
+
   const cargarNumeros = async () => {
     const ids = obras.map((o) => o.id);
     const { data: v } = await supabase.from('vistas').select('proyecto_id').in('proyecto_id', ids);
@@ -343,7 +373,13 @@ const Dashboard = () => {
       .sort((a, b) => (porObra[b.id] || 0) - (porObra[a.id] || 0))
       .slice(0, 3)
       .map((o) => ({ id: o.id, titulo: o.titulo, vistas: porObra[o.id] || 0 }));
-    setMisNumeros({ vistas: (v || []).length, likes, comentarios, top });
+    setMisNumeros((actual) => ({
+      ...actual,
+      vistas: (v || []).length,
+      likes,
+      comentarios,
+      top,
+    }));
   };
 
   const registrarVista = (proyectoId) => {
@@ -370,40 +406,25 @@ const Dashboard = () => {
     }
   };
 
-  const formatearNotificacion = (comentario) => {
-    const obra = obras.find((o) => o.id === comentario.proyecto_id);
-    const nombreObra = obra ? obra.titulo : 'tu publicación';
-    const nombreAutor = comentario.perfiles?.nombre_completo || 'Alguien';
-    return {
-      id: comentario.id,
-      texto: `${nombreAutor} comentó en ${nombreObra}: "${comentario.contenido}"`,
-      fecha: comentario.creado_el,
-      proyecto_id: comentario.proyecto_id,
-    };
-  };
-
   const cargarNotificaciones = async () => {
-    if (!usuario || obras.length === 0) return [];
+    if (!usuario) return [];
 
-    const proyectosIds = obras.map((o) => o.id);
-    const { data, error } = await supabase
-      .from('comentarios')
-      .select(`id, proyecto_id, usuario_id, creado_el, contenido, perfiles(nombre_completo)`)
-      .in('proyecto_id', proyectosIds)
-      .neq('usuario_id', usuario.id);
-
-    if (!error && data) {
-      const formateadas = data.map(formatearNotificacion);
-      setNotificaciones(formateadas);
-      actualizarContador(formateadas.length);
-      return formateadas;
+    const actividad = await cargarActividad(usuario.id, obras.map((obra) => obra.id), false);
+    actualizarNuevasNotificaciones(actividad, notificacionesIdsRef);
+    if (!sonidoInicialNotificacionesRef.current) {
+      sonidoInicialNotificacionesRef.current = true;
+      const leidas = Number(localStorage.getItem(STORAGE_KEY_NOTIF_LEIDAS)) || 0;
+      if (actividad.length > leidas) {
+        reproducirSonidoNotificacion();
+      }
     }
-
-    return [];
+    setNotificaciones(actividad);
+    actualizarContador(actividad.length);
+    return actividad;
   };
 
   useEffect(() => {
-    if (usuario && obras.length > 0) cargarNotificaciones();
+    if (usuario) cargarNotificaciones();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [obras, usuario]);
 
@@ -424,7 +445,9 @@ const Dashboard = () => {
     localStorage.setItem(STORAGE_KEY_NOTIF_LEIDAS, String(total));
     setNotificaciones(listaActual);
 
-    navigate('/notificaciones', { state: { notificaciones: listaActual } });
+    navigate('/notificaciones', {
+      state: { notificaciones: listaActual, dashboardPath: '/dashboard' },
+    });
   };
 
   const manejarLike = async (e, proyectoId, yaTieneLike) => {
@@ -1044,6 +1067,25 @@ return (
           )}
         </div>
 
+        <button
+          type="button"
+          className="btn btn-ghost"
+          onClick={manejarIrNotificaciones}
+          aria-label={`Ver actividad${contadorNotificaciones > 0 ? `, ${contadorNotificaciones} nuevas` : ''}`}
+          title="Ver actividad"
+          style={{ position: 'relative' }}
+        >
+          <Bell size={18} />
+          {contadorNotificaciones > 0 && (
+            <span
+              className="badge marca"
+              style={{ position: 'absolute', top: '-6px', right: '-6px', minWidth: '20px' }}
+            >
+              {contadorNotificaciones}
+            </span>
+          )}
+        </button>
+
         <button type="button" className="btn btn-ghost" onClick={() => navigate('/galeria')}>
           <ImageIcon size={18} /> Explorar galería
         </button>
@@ -1339,6 +1381,7 @@ return (
           <span className="dash-stat"><Eye size={14} /> {misNumeros.vistas} vistas</span>
           <span className="dash-stat"><Heart size={14} /> {misNumeros.likes} likes</span>
           <span className="dash-stat"><MessageCircle size={14} /> {misNumeros.comentarios} comentarios</span>
+          <span className="dash-stat"><Users size={14} /> {misNumeros.seguidores} seguidores</span>
         </div>
         {misNumeros.top.length > 0 && (
           <div className="columna mt-3">
