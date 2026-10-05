@@ -823,7 +823,7 @@ const Dashboard = () => {
 
       const { data: { publicUrl } } = supabase.storage.from('Proyectos').getPublicUrl(nombreArchivo);
 
-      if (archivo.type.startsWith('image') || archivo.type.startsWith('video')) {
+      if (archivo.type.startsWith('image/')) {
         const resultadoModeracion = await moderador.validarMedia(publicUrl, archivo.type);
         if (!resultadoModeracion.seguro) {
           avisar('Archivo bloqueado: contiene contenido inapropiado.', 'error');
@@ -864,19 +864,21 @@ const Dashboard = () => {
       return;
     }
 
-    const resultadoModeracionMedia = await moderador.validarMedia(nuevaObra.imagenUrl, '');
-    if (!resultadoModeracionMedia.seguro) {
-      avisar('Proyecto bloqueado: el archivo contiene contenido inapropiado.', 'error');
-      return;
-    }
-
-    setCargando(true);
-
     let tipoDetectado = 'imagen';
     const urlLower = nuevaObra.imagenUrl.toLowerCase();
 
     if (urlLower.match(/\.(mp4|webm|ogg|mov)$/i)) tipoDetectado = 'video';
     else if (urlLower.match(/\.(mp3|wav|flac|aac)$/i)) tipoDetectado = 'audio';
+
+    if (tipoDetectado === 'imagen') {
+      const resultadoModeracionMedia = await moderador.validarMedia(nuevaObra.imagenUrl, tipoDetectado);
+      if (!resultadoModeracionMedia.seguro) {
+        avisar('Proyecto bloqueado: el archivo contiene contenido inapropiado.', 'error');
+        return;
+      }
+    }
+
+    setCargando(true);
 
     try {
       const { error } = await supabase.from('proyectos').insert([

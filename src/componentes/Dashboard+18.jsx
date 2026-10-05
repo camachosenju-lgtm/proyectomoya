@@ -865,10 +865,10 @@ const Dashboard = ({ alCerrarSesion }) => {
         .from('Proyectos')
         .getPublicUrl(nombreArchivo);
 
-      if (archivo.type.startsWith('image') || archivo.type.startsWith('video')) {
+      if (archivo.type.startsWith('image/')) {
         const resultadoModeracion = contenidoExplicito
-          ? await moderador.validarMediaGore(publicUrl)
-          : await moderador.validarMediaNoExplicita(publicUrl);
+          ? await moderador.validarMediaGore(publicUrl, archivo.type)
+          : await moderador.validarMediaNoExplicita(publicUrl, archivo.type);
         if (!resultadoModeracion.seguro) {
           const { error: errorEliminar } = await supabase.storage.from('Proyectos').remove([nombreArchivo]);
           if (errorEliminar) {
@@ -924,10 +924,10 @@ const Dashboard = ({ alCerrarSesion }) => {
 
     setCargando(true);
     try {
-      if (tipoDetectado !== 'audio') {
+      if (tipoDetectado === 'imagen') {
         const resultadoModeracionMedia = contenidoExplicito
-          ? await moderador.validarMediaGore(nuevaObra.imagenUrl)
-          : await moderador.validarMediaNoExplicita(nuevaObra.imagenUrl);
+          ? await moderador.validarMediaGore(nuevaObra.imagenUrl, tipoDetectado)
+          : await moderador.validarMediaNoExplicita(nuevaObra.imagenUrl, tipoDetectado);
         if (!resultadoModeracionMedia.seguro) {
           alert(contenidoExplicito
             ? '❌ Proyecto bloqueado: se detectó contenido gore.'
