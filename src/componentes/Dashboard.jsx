@@ -21,7 +21,6 @@ import {
   LogOut,
   Heart,
   MessageCircle,
-  Bell,
   Trash2,
   Pencil,
   Save,
@@ -276,6 +275,8 @@ const Dashboard = () => {
   const [tituloEditando, setTituloEditando] = useState('');
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [mostrarModalSalir, setMostrarModalSalir] = useState(false);
+  const [avisoNotificaciones, setAvisoNotificaciones] = useState(0);
+  const [desvaneciendoAvisoNotificaciones, setDesvaneciendoAvisoNotificaciones] = useState(false);
   const [alerta, setAlerta] = useState({
     visible: false,
     mensaje: '',
@@ -316,6 +317,20 @@ const Dashboard = () => {
       window.removeEventListener('keydown', habilitarSonido);
     };
   }, []);
+
+  useEffect(() => {
+    if (avisoNotificaciones === 0) return undefined;
+
+    const temporizadorDesvanecer = setTimeout(() => setDesvaneciendoAvisoNotificaciones(true), 3500);
+    const temporizadorCerrar = setTimeout(() => {
+      setAvisoNotificaciones(0);
+      setDesvaneciendoAvisoNotificaciones(false);
+    }, 4200);
+    return () => {
+      clearTimeout(temporizadorDesvanecer);
+      clearTimeout(temporizadorCerrar);
+    };
+  }, [avisoNotificaciones]);
 
   useEffect(() => {
     const inicializar = async () => {
@@ -414,7 +429,9 @@ const Dashboard = () => {
     if (!sonidoInicialNotificacionesRef.current) {
       sonidoInicialNotificacionesRef.current = true;
       const leidas = Number(localStorage.getItem(STORAGE_KEY_NOTIF_LEIDAS)) || 0;
-      if (actividad.length > leidas) {
+      const pendientes = Math.max(0, actividad.length - leidas);
+      if (pendientes > 0) {
+        setAvisoNotificaciones(pendientes);
         reproducirSonidoNotificacion();
       }
     }
@@ -983,6 +1000,31 @@ const Dashboard = () => {
   if (cargando && !usuario) return <div className="dash-cargando">Cargando tu espacio...</div>;
 return (
     <section className="dash-pantalla">
+      {avisoNotificaciones > 0 && (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            zIndex: 2100,
+            maxWidth: 'min(380px, calc(100vw - 40px))',
+            padding: '14px 18px',
+            border: '1px solid var(--borde-fuerte)',
+            borderRadius: '14px',
+            background: 'var(--superficie)',
+            color: 'var(--texto)',
+            boxShadow: '0 12px 32px rgba(0,0,0,0.3)',
+            opacity: desvaneciendoAvisoNotificaciones ? 0 : 1,
+            transform: desvaneciendoAvisoNotificaciones ? 'translateY(-8px)' : 'translateY(0)',
+            transition: 'opacity 650ms ease, transform 650ms ease',
+            pointerEvents: 'none',
+          }}
+        >
+          Tienes {avisoNotificaciones} notificación{avisoNotificaciones === 1 ? '' : 'es'} sin leer. Revisa “Ver actividad”.
+        </div>
+      )}
       {/* ---------- Barra superior ---------- */}
       <div className="dash-barra">
         <div className="pos-relativa">
@@ -1066,25 +1108,6 @@ return (
             </div>
           )}
         </div>
-
-        <button
-          type="button"
-          className="btn btn-ghost"
-          onClick={manejarIrNotificaciones}
-          aria-label={`Ver actividad${contadorNotificaciones > 0 ? `, ${contadorNotificaciones} nuevas` : ''}`}
-          title="Ver actividad"
-          style={{ position: 'relative' }}
-        >
-          <Bell size={18} />
-          {contadorNotificaciones > 0 && (
-            <span
-              className="badge marca"
-              style={{ position: 'absolute', top: '-6px', right: '-6px', minWidth: '20px' }}
-            >
-              {contadorNotificaciones}
-            </span>
-          )}
-        </button>
 
         <button type="button" className="btn btn-ghost" onClick={() => navigate('/galeria')}>
           <ImageIcon size={18} /> Explorar galería
