@@ -115,3 +115,31 @@ create policy "admin elimina comentarios" on public.comentarios
     auth.uid() = usuario_id
     or exists (select 1 from public.perfiles where id = auth.uid() and tipo_cuenta = 'admin')
   );
+
+-- 10. Registro robusto: columna de nacimiento + perfil automático al registrarse.
+-- Evita el error "violates foreign key constraint perfiles_id_fkey" cuando
+-- el signup aún no tiene sesión (confirmación de correo pendiente): el perfil
+-- se crea en el servidor con el id real de auth.users. Ejecutar una vez.
+alter table public.perfiles add column if not exists fecha_nacimiento date;
+
+create or replace function public.handle_new_user()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  insert into public.perfiles (id, nombre_completo, biografia, avatar_url, tipo_cuenta, fecha_nacimiento)
+  values (
+    new.id,
+    'Nuevo Artista',
+    'Cuenta pendiente de verificación.',
+    'https://via.placeholder.com/150',
+    coalesce(new.raw_user_meta_data->>'tipo_cuenta', 'estandar'),
+    nullif(new.raw_user_meta_data->>'fecha_nacimiento', '')::date
+  )
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();
