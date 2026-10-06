@@ -98,3 +98,20 @@ create policy "acceso total" on public.reto_participaciones
 -- 8. Primer admin 
 -- update public.perfiles set tipo_cuenta = 'admin'
 -- where id = (select id from auth.users where email = 'mora.garrido.cd@gmail.com');
+
+-- 9. Moderación admin: permitir al admin borrar cualquier proyecto/comentario.
+-- Sin esto, el DELETE desde el panel devuelve 0 filas por RLS (sin error)
+-- y el comentario "reaparece" al volver a la publicación. Ejecutar una vez.
+drop policy if exists "admin elimina proyectos" on public.proyectos;
+create policy "admin elimina proyectos" on public.proyectos
+  for delete using (
+    auth.uid() = usuario_id
+    or exists (select 1 from public.perfiles where id = auth.uid() and tipo_cuenta = 'admin')
+  );
+
+drop policy if exists "admin elimina comentarios" on public.comentarios;
+create policy "admin elimina comentarios" on public.comentarios
+  for delete using (
+    auth.uid() = usuario_id
+    or exists (select 1 from public.perfiles where id = auth.uid() and tipo_cuenta = 'admin')
+  );
