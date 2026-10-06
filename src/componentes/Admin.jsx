@@ -4,23 +4,21 @@ import { useNavigate } from 'react-router-dom';
 import AlertModal from './AlertModal';
 import '../estilos/perfil.css';
 import {
-  ArrowLeft, ShieldAlert, Users, Flag, Trophy, BarChart3,
-  Check, X, Trash2, Ban, Crown, Plus,
+  ArrowLeft, ShieldAlert, Users, Flag, BarChart3,
+  Check, X, Trash2, Ban, Crown,
 } from 'lucide-react';
 
 // Panel de administración (solo tipo_cuenta === 'admin').
-// Pestañas: reportes, usuarios, retos y resumen.
+// Pestañas: reportes y usuarios.
 const Admin = () => {
   const navigate = useNavigate();
   const [cargando, setCargando] = useState(true);
   const [esAdmin, setEsAdmin] = useState(false);
   const [miId, setMiId] = useState(null);
   const [tab, setTab] = useState('reportes');
-  const [stats, setStats] = useState({ usuarios: 0, proyectos: 0, pendientes: 0, retos: 0 });
+  const [stats, setStats] = useState({ usuarios: 0, proyectos: 0, pendientes: 0 });
   const [reportes, setReportes] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
-  const [retos, setRetos] = useState([]);
-  const [nuevoReto, setNuevoReto] = useState({ titulo: '', descripcion: '', termina_el: '' });
   const [alerta, setAlerta] = useState({ visible: false, mensaje: '', tipo: 'info', titulo: '', onConfirm: null });
 
   const avisar = (mensaje, tipo = 'info', titulo) =>
@@ -44,7 +42,7 @@ const Admin = () => {
         return;
       }
       setEsAdmin(true);
-      await Promise.all([cargarStats(), cargarReportes(), cargarUsuarios(), cargarRetos()]);
+      await Promise.all([cargarStats(), cargarReportes(), cargarUsuarios()]);
       setCargando(false);
     };
     init();
@@ -57,14 +55,13 @@ const Admin = () => {
   };
 
   const cargarStats = async () => {
-    const [usuarios, proyectos, pendientes, retos] = await Promise.all([
+    const [usuarios, proyectos, pendientes] = await Promise.all([
       contar('perfiles'),
       contar('proyectos'),
       supabase.from('reportes').select('id', { count: 'exact', head: true }).eq('estado', 'pendiente')
         .then((r) => r.count || 0),
-      contar('retos'),
     ]);
-    setStats({ usuarios, proyectos, pendientes, retos });
+    setStats({ usuarios, proyectos, pendientes });
   };
 
   const cargarReportes = async () => {
@@ -78,12 +75,6 @@ const Admin = () => {
       .from('perfiles').select('id, nombre_completo, tipo_cuenta, disponible_trabajo')
       .order('nombre_completo').limit(100);
     setUsuarios(data || []);
-  };
-
-  const cargarRetos = async () => {
-    const { data } = await supabase
-      .from('retos').select('*').order('creado_el', { ascending: false });
-    setRetos(data || []);
   };
 
   const marcarReporte = async (id, estado) => {
@@ -145,39 +136,6 @@ const Admin = () => {
     }, 'Cambiar rol');
   };
 
-  const crearReto = async (e) => {
-    e.preventDefault();
-    if (!nuevoReto.titulo.trim()) {
-      avisar('El reto necesita un título.', 'info');
-      return;
-    }
-    const { error } = await supabase.from('retos').insert({
-      titulo: nuevoReto.titulo.trim(),
-      descripcion: nuevoReto.descripcion.trim() || null,
-      termina_el: nuevoReto.termina_el || null,
-      creado_por: miId,
-    });
-    if (error) {
-      avisar('Error: ' + error.message, 'error');
-      return;
-    }
-    setNuevoReto({ titulo: '', descripcion: '', termina_el: '' });
-    await Promise.all([cargarRetos(), cargarStats()]);
-    avisar('Reto publicado.', 'exito');
-  };
-
-  const alternarReto = async (reto) => {
-    await supabase.from('retos').update({ activo: !reto.activo }).eq('id', reto.id);
-    setRetos((prev) => prev.map((r) => (r.id === reto.id ? { ...r, activo: !reto.activo } : r)));
-  };
-
-  const borrarReto = (id) => {
-    pedirConfirmacion('¿Eliminar este reto y sus participaciones?', async () => {
-      await supabase.from('retos').delete().eq('id', id);
-      await Promise.all([cargarRetos(), cargarStats()]);
-    }, 'Eliminar reto');
-  };
-
   if (cargando) return <div className="dash-pantalla"><p className="dash-cargando">Verificando acceso...</p></div>;
 
   if (!esAdmin) {
@@ -212,7 +170,6 @@ const Admin = () => {
           <span className="dash-stat"><Users size={14} /> {stats.usuarios} usuarios</span>
           <span className="dash-stat"><BarChart3 size={14} /> {stats.proyectos} proyectos</span>
           <span className="dash-stat"><Flag size={14} /> {stats.pendientes} reportes pendientes</span>
-          <span className="dash-stat"><Trophy size={14} /> {stats.retos} retos</span>
         </div>
       </div>
 
@@ -222,9 +179,6 @@ const Admin = () => {
         </button>
         <button type="button" className={`tab ${tab === 'usuarios' ? 'activo' : ''}`} onClick={() => setTab('usuarios')}>
           <Users size={14} /> Usuarios
-        </button>
-        <button type="button" className={`tab ${tab === 'retos' ? 'activo' : ''}`} onClick={() => setTab('retos')}>
-          <Trophy size={14} /> Retos
         </button>
       </div>
 
@@ -308,63 +262,6 @@ const Admin = () => {
                   )}
                 </div>
                 <hr className="divisor" />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {tab === 'retos' && (
-        <div className="dash-panel">
-          <h4 className="dash-panel-titulo"><Trophy size={18} /> Retos creativos</h4>
-          <form onSubmit={crearReto} className="columna">
-            <input
-              className="campo"
-              placeholder="Título del reto (ej. Retrato en 48h)"
-              maxLength={60}
-              value={nuevoReto.titulo}
-              onChange={(e) => setNuevoReto({ ...nuevoReto, titulo: e.target.value })}
-            />
-            <textarea
-              className="campo"
-              placeholder="Descripción y reglas"
-              maxLength={200}
-              value={nuevoReto.descripcion}
-              onChange={(e) => setNuevoReto({ ...nuevoReto, descripcion: e.target.value })}
-            />
-            <div className="fila">
-              <input
-                type="date"
-                className="campo"
-                value={nuevoReto.termina_el}
-                onChange={(e) => setNuevoReto({ ...nuevoReto, termina_el: e.target.value })}
-              />
-              <button type="submit" className="btn btn-primario">
-                <Plus size={16} /> Publicar reto
-              </button>
-            </div>
-          </form>
-          <hr className="divisor" />
-          <div className="columna">
-            {retos.map((r) => (
-              <div key={r.id} className="fila-entre">
-                <div className="crecer">
-                  <strong>{r.titulo}</strong>{' '}
-                  <span className="badge">{r.activo ? 'activo' : 'cerrado'}</span>
-                  {r.termina_el && <small className="texto-3"> · Cierra: {r.termina_el}</small>}
-                </div>
-                <div className="fila">
-                  <button
-                    type="button"
-                    className="btn btn-ghost"
-                    onClick={() => alternarReto(r)}
-                  >
-                    {r.activo ? 'Cerrar' : 'Reabrir'}
-                  </button>
-                  <button type="button" className="btn-icono peligro" title="Eliminar reto" onClick={() => borrarReto(r.id)}>
-                    <Trash2 size={16} />
-                  </button>
-                </div>
               </div>
             ))}
           </div>

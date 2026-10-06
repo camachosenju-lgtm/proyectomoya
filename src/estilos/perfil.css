@@ -156,6 +156,40 @@
   color: var(--texto);
 }
 
+.dash-panel-toggle {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radio-sm);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: color var(--trans-rapida);
+}
+
+.dash-panel-toggle:hover {
+  color: var(--marca-400);
+}
+
+.dash-panel-toggle:focus-visible {
+  outline: 2px solid var(--marca-500);
+  outline-offset: 5px;
+}
+
+.dash-panel-toggle[aria-expanded="false"] {
+  margin-bottom: 0;
+}
+
+.dash-panel-toggle-icon {
+  flex: 0 0 auto;
+  margin-left: auto;
+  transition: transform 160ms ease;
+}
+
+.dash-panel-toggle[aria-expanded="true"] .dash-panel-toggle-icon {
+  transform: rotate(180deg);
+}
+
 .dash-fila {
   display: flex;
   flex-wrap: wrap;
@@ -340,6 +374,66 @@
   margin-bottom: var(--sp-4);
 }
 
+.dash-portafolio-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+}
+
+.dash-portafolio-cabecera .dash-titulo-seccion {
+  margin: 0;
+}
+
+.dash-busqueda-portafolio {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: min(100%, 360px);
+}
+
+.dash-busqueda-icono {
+  position: absolute;
+  left: 14px;
+  color: var(--texto-3);
+  pointer-events: none;
+  transition: color var(--trans-rapida);
+}
+
+.dash-busqueda-campo {
+  padding-left: 44px;
+}
+
+.dash-busqueda-numeros {
+  margin-top: var(--sp-4);
+}
+
+.dash-busqueda-portafolio:focus-within .dash-busqueda-icono {
+  color: var(--marca-400);
+}
+
+.dash-numero-proyecto {
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--radio-sm);
+  background: var(--superficie-2);
+}
+
+.dash-numeros-sin-resultados {
+  margin: var(--sp-3) 0 0;
+  padding: var(--sp-3);
+  color: var(--texto-3);
+  text-align: center;
+  border: 1px dashed var(--borde-fuerte);
+  border-radius: var(--radio-sm);
+}
+
+.dash-vacio-busqueda {
+  border-style: solid;
+  background: var(--superficie);
+}
+
 .dash-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -456,6 +550,14 @@
 
   .dash-grid {
     grid-template-columns: 1fr;
+  }
+
+  .dash-portafolio-cabecera {
+    align-items: stretch;
+  }
+
+  .dash-busqueda-portafolio {
+    width: 100%;
   }
 
   .dash-barra {

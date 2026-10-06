@@ -11,7 +11,7 @@ import {
   detectarTemaPerfil,
   esFondoClaro,
 } from './temasPerfil';
-import { Menu, User, Users, Image as ImageIcon, ImagePlus, Activity, LogOut, Heart, MessageCircle, Trash2, Pencil, Save, X, Send, Palette, Settings, Inbox, RotateCcw, ChevronLeft, ChevronRight, Eye, Trophy } from 'lucide-react';
+import { Menu, User, Users, Image as ImageIcon, ImagePlus, Activity, LogOut, Heart, MessageCircle, Trash2, Pencil, Save, X, Send, Palette, Settings, Inbox, RotateCcw, ChevronLeft, ChevronRight, Eye, Search, ChevronDown } from 'lucide-react';
 import { actualizarNuevasNotificaciones, cargarActividad, habilitarSonidoNotificaciones, obtenerClaveNotificacionesLeidas, reproducirSonidoNotificacion } from './actividad';
 
 
@@ -164,6 +164,8 @@ const Dashboard = ({ alCerrarSesion }) => {
   const carruselPlantillasRef = useRef(null);
 
   const [obras, setObras] = useState([]);
+  const [busquedaObras, setBusquedaObras] = useState('');
+  const [mostrarMisNumeros, setMostrarMisNumeros] = useState(true);
   const [misNumeros, setMisNumeros] = useState({ vistas: 0, likes: 0, comentarios: 0, seguidores: 0, top: [] });
   const [nuevaObra, setNuevaObra] = useState({ titulo: '', descripcion: '', imagenUrl: '' });
   const [contenidoExplicito, setContenidoExplicito] = useState(false);
@@ -396,7 +398,6 @@ const Dashboard = ({ alCerrarSesion }) => {
       );
       const top = [...obras]
         .sort((a, b) => (vistasPorObra[b.id] || 0) - (vistasPorObra[a.id] || 0))
-        .slice(0, 3)
         .map((obra) => ({
           id: obra.id,
           titulo: obra.titulo,
@@ -1074,6 +1075,10 @@ const Dashboard = ({ alCerrarSesion }) => {
     setPerfil(prev => ({ ...prev, imagenFondoUrl: url }));
   };
 
+  const obrasFiltradas = obras.filter((obra) =>
+    (obra.titulo || '').toLocaleLowerCase().includes(busquedaObras.trim().toLocaleLowerCase())
+  );
+
   if (inicializando || !perfilAdultoVerificado) {
     return <div className="dash-cargando">Cargando tu espacio...</div>;
   }
@@ -1172,13 +1177,6 @@ const Dashboard = ({ alCerrarSesion }) => {
                 className="dash-menu-item"
               >
                 <ImageIcon size={18} /> Galería
-              </button>
-              <button
-                type="button"
-                onClick={() => { setMenuAbierto(false); navigate('/retos'); }}
-                className="dash-menu-item"
-              >
-                <Trophy size={18} /> Retos
               </button>
               <button
                 type="button"
@@ -1717,24 +1715,61 @@ const Dashboard = ({ alCerrarSesion }) => {
       </div>
 
       <div className="dash-panel">
-        <h4 className="dash-panel-titulo">
+        <button
+          type="button"
+          className="dash-panel-titulo dash-panel-toggle"
+          aria-expanded={mostrarMisNumeros}
+          onClick={() => setMostrarMisNumeros((abierto) => !abierto)}
+        >
           <Eye size={20} /> Mis números
-        </h4>
-        <div className="fila">
-          <span className="dash-stat"><Eye size={14} /> {misNumeros.vistas} vistas</span>
-          <span className="dash-stat"><Heart size={14} /> {misNumeros.likes} likes</span>
-          <span className="dash-stat"><MessageCircle size={14} /> {misNumeros.comentarios} comentarios</span>
-          <span className="dash-stat"><Users size={14} /> {misNumeros.seguidores} seguidores</span>
-        </div>
-        {misNumeros.top.length > 0 && (
-          <div className="columna mt-3">
-            {misNumeros.top.map((obra) => (
-              <div key={obra.id} className="fila-entre">
-                <span className="crecer">{obra.titulo}</span>
-                <span className="badge">{obra.vistas} vistas</span>
+          <ChevronDown size={18} className="dash-panel-toggle-icon" />
+        </button>
+        {mostrarMisNumeros && (
+          <>
+            <div className="fila">
+              <span className="dash-stat"><Eye size={14} /> {misNumeros.vistas} vistas</span>
+              <span className="dash-stat"><Heart size={14} /> {misNumeros.likes} likes</span>
+              <span className="dash-stat"><MessageCircle size={14} /> {misNumeros.comentarios} comentarios</span>
+              <span className="dash-stat"><Users size={14} /> {misNumeros.seguidores} seguidores</span>
+            </div>
+            {obras.length > 0 && (
+              <label className="dash-busqueda-portafolio dash-busqueda-numeros">
+                <Search size={18} className="dash-busqueda-icono" aria-hidden="true" />
+                <input
+                  type="search"
+                  className="campo dash-busqueda-campo"
+                  placeholder="Buscar un proyecto en mis números..."
+                  aria-label="Buscar un proyecto en mis números"
+                  value={busquedaObras}
+                  onChange={(e) => setBusquedaObras(e.target.value)}
+                />
+              </label>
+            )}
+            {(busquedaObras.trim()
+              ? misNumeros.top.filter((obra) =>
+                  (obra.titulo || '').toLocaleLowerCase().includes(busquedaObras.trim().toLocaleLowerCase())
+                )
+              : misNumeros.top.slice(0, 3)
+            ).length > 0 ? (
+              <div className="columna mt-3">
+                {(busquedaObras.trim()
+                  ? misNumeros.top.filter((obra) =>
+                      (obra.titulo || '').toLocaleLowerCase().includes(busquedaObras.trim().toLocaleLowerCase())
+                    )
+                  : misNumeros.top.slice(0, 3)
+                ).map((obra) => (
+                  <div key={obra.id} className="fila-entre dash-numero-proyecto">
+                    <span className="crecer">{obra.titulo}</span>
+                    <span className="badge">{obra.vistas} vistas</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            ) : busquedaObras.trim() ? (
+              <p className="dash-numeros-sin-resultados" role="status">
+                No hay proyectos que coincidan con “{busquedaObras}”.
+              </p>
+            ) : null}
+          </>
         )}
       </div>
 
@@ -1784,9 +1819,34 @@ const Dashboard = ({ alCerrarSesion }) => {
         </div>
       </div>
 
-      <h2 className="dash-titulo-seccion">Mi portafolio</h2>
+      <div className="dash-portafolio-cabecera">
+        <h2 className="dash-titulo-seccion">Mi portafolio</h2>
+        {obras.length > 0 && (
+          <label className="dash-busqueda-portafolio">
+            <Search size={18} className="dash-busqueda-icono" aria-hidden="true" />
+            <input
+              type="search"
+              className="campo dash-busqueda-campo"
+              placeholder="Buscar mis proyectos..."
+              aria-label="Buscar mis proyectos"
+              value={busquedaObras}
+              onChange={(e) => setBusquedaObras(e.target.value)}
+            />
+          </label>
+        )}
+      </div>
       <div className="dash-grid">
-        {obras.length > 0 ? obras.map((obra) => (
+        {obras.length === 0 ? (
+          <div className="dash-vacio">
+            <Inbox size={34} />
+            <span>Sube tu primer proyecto arriba para verlo aquí.</span>
+          </div>
+        ) : obrasFiltradas.length === 0 ? (
+          <div className="dash-vacio dash-vacio-busqueda" role="status">
+            <Search size={34} />
+            <span>No se encontraron proyectos que coincidan con “{busquedaObras}”.</span>
+          </div>
+        ) : obrasFiltradas.map((obra) => (
           <div key={obra.id} className="dash-tarjeta" onClick={() => abrirProyecto(obra)}>
             {obra.tipo_archivo === 'video' ? (
               <video src={obra.archivo_url} className="dash-tarjeta-media" muted />
@@ -1822,12 +1882,7 @@ const Dashboard = ({ alCerrarSesion }) => {
               </button>
             </div>
           </div>
-        )) : (
-          <div className="dash-vacio">
-            <Inbox size={34} />
-            <span>Sube tu primer proyecto arriba para verlo aquí.</span>
-          </div>
-        )}
+        ))}
       </div>
 
       {/* MODAL DE COMENTARIOS */}

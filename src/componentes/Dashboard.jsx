@@ -30,12 +30,13 @@ import {
   ImagePlus,
   Inbox,
   RotateCcw,
-  Trophy,
   ShieldAlert,
   Eye,
   Flag,
   ChevronLeft,
   ChevronRight,
+  Search,
+  ChevronDown,
 } from 'lucide-react';
 import AlertModal from './AlertModal';
 import { actualizarNuevasNotificaciones, cargarActividad, habilitarSonidoNotificaciones, reproducirSonidoNotificacion } from './actividad';
@@ -244,6 +245,8 @@ const Dashboard = () => {
   const carruselPlantillasRef = useRef(null);
 
   const [obras, setObras] = useState([]);
+  const [busquedaObras, setBusquedaObras] = useState('');
+  const [mostrarMisNumeros, setMostrarMisNumeros] = useState(true);
   const [nuevaObra, setNuevaObra] = useState({ titulo: '', descripcion: '', imagenUrl: '' });
   const [cargando, setCargando] = useState(true);
 
@@ -386,7 +389,6 @@ const Dashboard = () => {
     const comentarios = obras.reduce((a, o) => a + Number(o.comentarios?.[0]?.count || 0), 0);
     const top = [...obras]
       .sort((a, b) => (porObra[b.id] || 0) - (porObra[a.id] || 0))
-      .slice(0, 3)
       .map((o) => ({ id: o.id, titulo: o.titulo, vistas: porObra[o.id] || 0 }));
     setMisNumeros((actual) => ({
       ...actual,
@@ -999,6 +1001,10 @@ const Dashboard = () => {
     }));
   };
 
+  const obrasFiltradas = obras.filter((obra) =>
+    (obra.titulo || '').toLocaleLowerCase().includes(busquedaObras.trim().toLocaleLowerCase())
+  );
+
   if (cargando && !usuario) return <div className="dash-cargando">Cargando tu espacio...</div>;
 return (
     <section className="dash-pantalla">
@@ -1053,17 +1059,6 @@ return (
                 }}
               >
                 <ImageIcon size={18} /> Galería
-              </button>
-
-              <button
-                type="button"
-                className="dash-menu-item"
-                onClick={() => {
-                  setMenuAbierto(false);
-                  navigate('/retos');
-                }}
-              >
-                <Trophy size={18} /> Retos
               </button>
 
               {perfil.esAdmin && (
@@ -1399,24 +1394,61 @@ return (
 
       {/* ---------- Mis números ---------- */}
       <div className="dash-panel">
-        <h4 className="dash-panel-titulo">
+        <button
+          type="button"
+          className="dash-panel-titulo dash-panel-toggle"
+          aria-expanded={mostrarMisNumeros}
+          onClick={() => setMostrarMisNumeros((abierto) => !abierto)}
+        >
           <Eye size={20} /> Mis números
-        </h4>
-        <div className="fila">
-          <span className="dash-stat"><Eye size={14} /> {misNumeros.vistas} vistas</span>
-          <span className="dash-stat"><Heart size={14} /> {misNumeros.likes} likes</span>
-          <span className="dash-stat"><MessageCircle size={14} /> {misNumeros.comentarios} comentarios</span>
-          <span className="dash-stat"><Users size={14} /> {misNumeros.seguidores} seguidores</span>
-        </div>
-        {misNumeros.top.length > 0 && (
-          <div className="columna mt-3">
-            {misNumeros.top.map((t) => (
-              <div key={t.id} className="fila-entre">
-                <span className="crecer">{t.titulo}</span>
-                <span className="badge">{t.vistas} vistas</span>
+          <ChevronDown size={18} className="dash-panel-toggle-icon" />
+        </button>
+        {mostrarMisNumeros && (
+          <>
+            <div className="fila">
+              <span className="dash-stat"><Eye size={14} /> {misNumeros.vistas} vistas</span>
+              <span className="dash-stat"><Heart size={14} /> {misNumeros.likes} likes</span>
+              <span className="dash-stat"><MessageCircle size={14} /> {misNumeros.comentarios} comentarios</span>
+              <span className="dash-stat"><Users size={14} /> {misNumeros.seguidores} seguidores</span>
+            </div>
+            {obras.length > 0 && (
+              <label className="dash-busqueda-portafolio dash-busqueda-numeros">
+                <Search size={18} className="dash-busqueda-icono" aria-hidden="true" />
+                <input
+                  type="search"
+                  className="campo dash-busqueda-campo"
+                  placeholder="Buscar un proyecto en mis números..."
+                  aria-label="Buscar un proyecto en mis números"
+                  value={busquedaObras}
+                  onChange={(e) => setBusquedaObras(e.target.value)}
+                />
+              </label>
+            )}
+            {(busquedaObras.trim()
+              ? misNumeros.top.filter((obra) =>
+                  (obra.titulo || '').toLocaleLowerCase().includes(busquedaObras.trim().toLocaleLowerCase())
+                )
+              : misNumeros.top.slice(0, 3)
+            ).length > 0 ? (
+              <div className="columna mt-3">
+                {(busquedaObras.trim()
+                  ? misNumeros.top.filter((obra) =>
+                      (obra.titulo || '').toLocaleLowerCase().includes(busquedaObras.trim().toLocaleLowerCase())
+                    )
+                  : misNumeros.top.slice(0, 3)
+                ).map((obra) => (
+                  <div key={obra.id} className="fila-entre dash-numero-proyecto">
+                    <span className="crecer">{obra.titulo}</span>
+                    <span className="badge">{obra.vistas} vistas</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            ) : busquedaObras.trim() ? (
+              <p className="dash-numeros-sin-resultados" role="status">
+                No hay proyectos que coincidan con “{busquedaObras}”.
+              </p>
+            ) : null}
+          </>
         )}
       </div>
 
@@ -1460,10 +1492,35 @@ return (
       </div>
 
       {/* ---------- Mi portafolio ---------- */}
-      <h2 className="dash-titulo-seccion">Mi portafolio</h2>
+      <div className="dash-portafolio-cabecera">
+        <h2 className="dash-titulo-seccion">Mi portafolio</h2>
+        {obras.length > 0 && (
+          <label className="dash-busqueda-portafolio">
+            <Search size={18} className="dash-busqueda-icono" aria-hidden="true" />
+            <input
+              type="search"
+              className="campo dash-busqueda-campo"
+              placeholder="Buscar mis proyectos..."
+              aria-label="Buscar mis proyectos"
+              value={busquedaObras}
+              onChange={(e) => setBusquedaObras(e.target.value)}
+            />
+          </label>
+        )}
+      </div>
       <div className="dash-grid">
-        {obras.length > 0 ? (
-          obras.map((obra) => (
+        {obras.length === 0 ? (
+          <div className="dash-vacio">
+            <Inbox size={34} />
+            <span>Sube tu primer proyecto arriba para verlo aquí.</span>
+          </div>
+        ) : obrasFiltradas.length === 0 ? (
+          <div className="dash-vacio dash-vacio-busqueda" role="status">
+            <Search size={34} />
+            <span>No se encontraron proyectos que coincidan con “{busquedaObras}”.</span>
+          </div>
+        ) : (
+          obrasFiltradas.map((obra) => (
             <div key={obra.id} className="dash-tarjeta" onClick={() => abrirProyecto(obra)}>
               {obra.tipo_archivo === 'video' ? (
                 <video src={obra.archivo_url} className="dash-tarjeta-media" muted />
@@ -1504,11 +1561,6 @@ return (
               </div>
             </div>
           ))
-        ) : (
-          <div className="dash-vacio">
-            <Inbox size={34} />
-            <span>Sube tu primer proyecto arriba para verlo aquí.</span>
-          </div>
         )}
       </div>
 
